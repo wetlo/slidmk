@@ -1,0 +1,10 @@
+Presentation = { Slide }.
+
+Slide = Header [ Body ].
+
+Header = "---" identifier "\n".
+
+Body = { Content "\n" }.
+
+Content = text
+		| {"* " text {"\n- " text} }.

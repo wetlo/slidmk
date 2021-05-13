@@ -1,0 +1,42 @@
+--- Style
+./path/to/style/sheet
+
+--- Title
+;;; comment
+
+EXAMPLE PRESENTATION
+
+	by me
+
+--- Style
+style from standard path
+
+--- Head_Cont
+
+;;;[[
+	Block comment?
+	a bit heavy syntax ig
+
+	also different contents need to
+	be separated by \n-s
+]];;;
+Contents
+
+* why should i write a lexer
+	- this should also be possible
+* should i really parse this like a real language
+* well maybe it's overkill
+
+--- Vert_Split
+
+Pros
+
+;;; without \n it's treated as "one" line/paragraph
+i don't know why
+but i don't really care to be
+honest
+
+Cons
+
+;;; needs to be it's own paragraph
+![this is a cat](/path/to/image/or/other/graphic/maybe)
