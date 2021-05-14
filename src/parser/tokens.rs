@@ -3,5 +3,4 @@ pub enum Token {
     Text(String),
     Identifier(String),
     ListPre(u8),
-    SlideStart,
 }
