@@ -12,19 +12,30 @@ lazy_static! {
     static ref BLOCK_COMM_END: Regex = Regex::new(r"];").unwrap();*/
 }
 
-pub struct Lexer<I, S>
+pub struct Lexer<I>
 where
-    I: Iterator<Item = S>,
-    S: Into<String>,
+    I: Iterator<Item = String>,
 {
     last: Option<String>,
     source: Peekable<I>,
 }
+macro_rules! parse_helper {
+    ($self:ident, $line:ident => $([$regex:expr, $m:ident => $return:expr $(, $last:expr)?]),+ => $end:tt) => {
+        $(
+            if let Some($m) = $regex.captures(&$line) {
+                $($self.last = Some($last);)?
+                Some($return)
+            }
+        )else+
+            else {
+                $end
+            }
+    };
+}
 
-impl<I, S> Iterator for Lexer<I, S>
+impl<I> Iterator for Lexer<I>
 where
-    I: Iterator<Item = S>,
-    S: Into<String>,
+    I: Iterator<Item = String>,
 {
     type Item = Token;
 
@@ -32,16 +43,15 @@ where
         // don't allocate if you don't need to
         let mut buffer = None::<String>;
 
-        while let Some(line) = self
-            .last
-            .take()
-            .or_else(|| self.source.next().map(Into::into))
-        {
-            let token = if buffer.is_some() {
-                if self.source.peek().filter(|s| s.into().is_empty()).is_some() {
-                    Some(Token::Text(buffer.unwrap() /*must be some*/))
+        while let Some(line) = self.next_source() {
+            /*let token = if let Some(mut b) = buffer {
+                if self.is_next_empty() {
+                    //Some(Token::Text(buffer.unwrap() /*must be some*/))
+                    return Some(Token::Text(b)); // return to please the borrow checker
                 } else {
-                    buffer.map(|s| s.push_str(&line));
+                    //buffer.map(|s| s.push_str(&line));
+                    b.push_str(&line);
+                    buffer = Some(b);
                     None
                 }
             } else if line.is_empty() {
@@ -57,7 +67,15 @@ where
             } else {
                 buffer = Some(line);
                 None
-            };
+            };*/
+
+            let token = parse_helper! (self, line =>
+                [SLIDE_REG, m => Token::Identifier(m.get(1)?.as_str().into())],
+                [LIST_IDENT, m => Token::ListPre(m.get(0)?.end() as u8 - 2), line[m.get(0)?.end()..].into()]
+            => {
+                buffer = Some(line);
+                None
+            });
 
             // no token found yet so another round
             if token.is_some() {
@@ -69,15 +87,22 @@ where
     }
 }
 
-impl<I, S> Lexer<I, S>
+impl<I> Lexer<I>
 where
-    I: Iterator<Item = S>,
-    S: Into<String>,
+    I: Iterator<Item = String>,
 {
     pub fn new(strings: I) -> Self {
         Self {
             source: strings.peekable(),
             last: None,
         }
+    }
+
+    fn next_source(&mut self) -> Option<String> {
+        self.last.take().or_else(|| self.source.next())
+    }
+
+    fn is_next_empty(&mut self) -> bool {
+        self.source.peek().filter(|s| s.is_empty()).is_some()
     }
 }
