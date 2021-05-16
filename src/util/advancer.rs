@@ -2,7 +2,7 @@ use std::iter::Peekable;
 
 /// advances a mutable referance to Iterator that is
 /// wrapped in a Peekable while a certain condition is true
-struct Advancer<'a, I, P>
+pub struct Advancer<'a, I, P>
 where
     I: Iterator,
     P: FnMut(&I::Item) -> bool,
@@ -26,7 +26,7 @@ where
     }
 }
 
-trait CreateAdvancer<I: Iterator>: Iterator {
+pub trait CreateAdvancer<I: Iterator>: Iterator {
     fn advance_while<'a, P>(&'a mut self, predicate: P) -> Advancer<'a, I, P>
     where
         P: FnMut(&I::Item) -> bool;
