@@ -1,12 +1,15 @@
 use super::tokens::Token;
 use std::iter::{Iterator, Peekable};
 
+/// iterator that iterates over all the tokens
+/// from a given char-iterator
 pub struct Lexer<I>
 where
     I: Iterator<Item = char>,
 {
     /// stores misread characters
-    cached: Option<String>,
+    _cached: Option<String>,
+    sqr_bracks: i8,
     source: Peekable<I>,
 }
 
@@ -17,8 +20,6 @@ where
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let is_whitepace = |c: char| c.is_whitespace() && c != '\n';
-
         // skip whitespace
         let skipped = self.count_while(is_whitepace);
 
@@ -27,23 +28,40 @@ where
             self.collect_until(&['\n'], None);
         }
 
-        match self.source.next()? {
-            '\n' => Some(Token::Linefeed),
+        let token = match self.source.next()? {
+            // \n shouldn't be escaped
+            '\n' => Token::Linefeed,
+
+            '\\' => self.get_text(String::new()),
+
+            '[' => {
+                self.update_square_brackets(1);
+                Token::SqrBracketLeft
+            }
+            ']' => {
+                self.update_square_brackets(-1);
+                Token::SqrBracketRight
+            }
+
             // a list item prefix
-            '*' | '-' if self.is_next_whitespace() => Some(Token::ListPre(skipped)),
-            '-' if self.count_while(|c| c == '-') == 2 => {
+            '*' | '-' if self.is_next_whitespace() => Token::ListPre(skipped),
+
+            // identifier (---IDENTIFIER)
+            '-' /*if self.count_while(|c| c == '-') == 2*/ => {
                 // TODO: add ability to readd those --- if
                 // there isn't a valid Identifier
+                println!("Ident_count: {}", self.count_while(|c| c == '-'));
                 self.count_while(is_whitepace);
-                Some(Token::Identifier(self.get_identifier()))
+                Token::Identifier(self.get_identifier())
             }
-            // TODO: add picture support
-            '!' => unimplemented!(),
-            c => Some(Token::Text(
-                self.collect_until(&['\n', ';'], Some(String::from(c)))
-                    .unwrap(),
-            )),
-        }
+
+            // "some/path/"
+            '"' => self.get_path(),
+            // just some text
+            c => self.get_text(String::from(c)),
+        };
+
+        Some(token)
     }
 }
 
@@ -51,9 +69,12 @@ impl<I> Lexer<I>
 where
     I: Iterator<Item = char>,
 {
+    /// creates the TokenIterator with an
+    /// iterate over the chars of the source (\n should be included)
     pub fn new(chars: I) -> Self {
         Self {
-            cached: None,
+            _cached: None,
+            sqr_bracks: 0,
             source: chars.peekable(),
         }
     }
@@ -79,11 +100,21 @@ where
         collector
     }
 
+    fn update_square_brackets(&mut self, sign: i8) {
+        self.sqr_bracks += sign;
+
+        println!("Current square bracket count {}", self.sqr_bracks);
+
+        if self.sqr_bracks < 0 {
+            self.sqr_bracks = 0;
+        }
+    }
+
+    /// counts all the occurrences
     fn count_while<P>(&mut self, mut predicate: P) -> u8
     where
         P: FnMut(char) -> bool,
     {
-        //self.source.advance_while(|&c| predicate(c)).count() as u8;
         self.source.by_ref().take_while(|&c| predicate(c)).count() as u8
     }
 
@@ -99,9 +130,35 @@ where
             .by_ref()
             .take_while(|&c| c.is_alphanumeric() || c == '_')
             .collect()
-        /*self.source
-        // TODO: remove this unnecessary construct (.b
-        .advance_while(|&c| c.is_alphabetic() || c == '_')
-        .collect();*/
+        // TODO: remove advance_while
     }
+
+    fn get_path(&mut self) -> Token {
+        let path = self
+            .collect_until(&['"'], Some(String::new()))
+            .unwrap()
+            .into();
+
+        // ignore the "
+        if self.source.next().is_none() {
+            // if a " doesn't exit it's a not a valid token
+            Token::Illegal
+        } else {
+            Token::Path(path)
+        }
+    }
+
+    fn get_text(&mut self, collector: String) -> Token {
+        let delims: &[char] = if self.sqr_bracks > 0 {
+            &['\n', ';', ']']
+        } else {
+            &['\n', ';']
+        };
+
+        Token::Text(self.collect_until(&delims, Some(collector)).unwrap())
+    }
+}
+
+fn is_whitepace(c: char) -> bool {
+    c.is_whitespace() && c != '\n'
 }
