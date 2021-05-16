@@ -1,5 +1,5 @@
 --- Style
-./path/to/style/sheet
+"./path/to/style/sheet"
 
 --- Title
 ; comment
@@ -9,7 +9,7 @@ EXAMPLE PRESENTATION
 	by me
 
 --- Style
-style from standard path
+"style_from_standard_path"
 
 --- Head_Cont
 
@@ -32,4 +32,4 @@ honest
 Cons
 
 ; needs to be it's own paragraph
-![this is a cat](/path/to/image/or/other/graphic/maybe)
+[this is a cat]"/path/to/image/or/other/graphic/maybe"
