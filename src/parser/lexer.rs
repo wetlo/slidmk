@@ -1,5 +1,4 @@
 use super::tokens::Token;
-use crate::util::advancer::CreateAdvancer;
 use std::iter::{Iterator, Peekable};
 
 pub struct Lexer<I>
@@ -84,7 +83,8 @@ where
     where
         P: FnMut(char) -> bool,
     {
-        self.source.advance_while(|&c| predicate(c)).count() as u8
+        //self.source.advance_while(|&c| predicate(c)).count() as u8;
+        self.source.by_ref().take_while(|&c| predicate(c)).count() as u8
     }
 
     fn is_next_whitespace(&mut self) -> bool {
