@@ -1,4 +1,5 @@
 use super::tokens::Token;
+use crate::util::advancer::CreateAdvancer;
 use std::iter::{Iterator, Peekable};
 
 /// iterator that iterates over all the tokens
@@ -47,10 +48,9 @@ where
             '*' | '-' if self.is_next_whitespace() => Token::ListPre(skipped),
 
             // identifier (---IDENTIFIER)
-            '-' /*if self.count_while(|c| c == '-') == 2*/ => {
+            '-' if self.count_while(|c| c == '-') == 2 => {
                 // TODO: add ability to readd those --- if
                 // there isn't a valid Identifier
-                println!("Ident_count: {}", self.count_while(|c| c == '-'));
                 self.count_while(is_whitepace);
                 Token::Identifier(self.get_identifier())
             }
@@ -103,8 +103,6 @@ where
     fn update_square_brackets(&mut self, sign: i8) {
         self.sqr_bracks += sign;
 
-        println!("Current square bracket count {}", self.sqr_bracks);
-
         if self.sqr_bracks < 0 {
             self.sqr_bracks = 0;
         }
@@ -115,7 +113,7 @@ where
     where
         P: FnMut(char) -> bool,
     {
-        self.source.by_ref().take_while(|&c| predicate(c)).count() as u8
+        self.source.advance_while(|&c| predicate(c)).count() as u8
     }
 
     fn is_next_whitespace(&mut self) -> bool {
@@ -127,8 +125,7 @@ where
 
     fn get_identifier(&mut self) -> String {
         self.source
-            .by_ref()
-            .take_while(|&c| c.is_alphanumeric() || c == '_')
+            .advance_while(|&c| c.is_alphanumeric() || c == '_')
             .collect()
         // TODO: remove advance_while
     }
