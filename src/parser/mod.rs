@@ -17,5 +17,7 @@ pub fn parse_file<P: AsRef<Path>>(path: P) -> Result<Vec<tokens::Token>> {
         .chars()
         .map(|c| c.expect("couldn't read another char"));
 
-    Ok(lexer::Lexer::new(chars).collect())
+    Ok(lexer::Lexer::new(chars)
+        .inspect(|token| println!("{:?}", token))
+        .collect())
 }
