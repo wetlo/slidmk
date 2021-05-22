@@ -26,14 +26,15 @@ where
 
         // skip comments
         if self.source.peek() == Some(&';') {
-            self.collect_until(&['\n'], None);
+            self.collect_until(&['\n'], None, false);
+            self.source.next(); // consume the trailing \n
         }
 
         let token = match self.source.next()? {
             // \n shouldn't be escaped
             '\n' => Token::Linefeed,
 
-            '\\' => self.get_text(String::new()),
+            '\\' => self.get_text(String::new(), true),
 
             '[' => {
                 self.update_square_brackets(1);
@@ -58,7 +59,7 @@ where
             // "some/path/"
             '"' => self.get_path(),
             // just some text
-            c => self.get_text(String::from(c)),
+            c => self.get_text(String::from(c), false),
         };
 
         Some(token)
@@ -83,15 +84,28 @@ where
     /// the collected chars will be inserted into the collector if
     /// it is Some and otherwise are ignored
     /// the enum type of the return value is the same as the argument collector
-    fn collect_until(&mut self, ends: &[char], mut collector: Option<String>) -> Option<String> {
+    fn collect_until(
+        &mut self,
+        ends: &[char],
+        mut collector: Option<String>,
+        mut escaped: bool,
+    ) -> Option<String> {
         // TODO: maybe rewrite with advance_while
         let mut coll_fn: Box<dyn FnMut(char)> = match collector.as_mut() {
             Some(s) => Box::new(move |c| s.push(c)),
             None => Box::new(|_: char| ()), // () is a noop
         };
 
-        while self.source.peek().filter(|&c| !ends.contains(c)).is_some() {
-            coll_fn(self.source.next().unwrap())
+        while self.source.peek().filter(|&c| !ends.contains(c)).is_some()
+            || self.source.peek().is_some() && escaped
+        {
+            match self.source.next().unwrap_or_else(|| unreachable!()) {
+                '\\' => escaped = true,
+                c => {
+                    escaped = false;
+                    coll_fn(c)
+                }
+            }
         }
 
         // the collect function borrows the collector mutably so
@@ -132,7 +146,7 @@ where
 
     fn get_path(&mut self) -> Token {
         let path = self
-            .collect_until(&['"'], Some(String::new()))
+            .collect_until(&['"'], Some(String::new()), false)
             .unwrap()
             .into();
 
@@ -145,14 +159,17 @@ where
         }
     }
 
-    fn get_text(&mut self, collector: String) -> Token {
+    fn get_text(&mut self, collector: String, first_escaped: bool) -> Token {
         let delims: &[char] = if self.sqr_bracks > 0 {
             &['\n', ';', ']']
         } else {
             &['\n', ';']
         };
 
-        Token::Text(self.collect_until(&delims, Some(collector)).unwrap())
+        Token::Text(
+            self.collect_until(&delims, Some(collector), first_escaped)
+                .unwrap(),
+        )
     }
 }
 

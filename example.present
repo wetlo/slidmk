@@ -33,3 +33,8 @@ Cons
 
 ; needs to be it's own paragraph
 [this is a cat]"/path/to/image/or/other/graphic/maybe"
+
+---Another_Slide
+
+\; not a comment
+\* not a list item
