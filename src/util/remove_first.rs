@@ -3,9 +3,19 @@ where
     I: Iterator,
     I::Item: PartialEq,
 {
-    pub iter: I,
-    pub to_remove: I::Item,
+    iter: I,
+    to_remove: I::Item,
     //pub already_there: bool,
+}
+
+impl<I> RemoveFirst<I>
+where
+    I: Iterator,
+    I::Item: PartialEq,
+{
+    pub fn new(iter: I, to_remove: I::Item) -> Self {
+        Self { iter, to_remove }
+    }
 }
 
 impl<I> Iterator for RemoveFirst<I>
