@@ -1,14 +1,14 @@
-pub struct LeaveOne<I>
+pub struct RemoveFirst<I>
 where
     I: Iterator,
     I::Item: PartialEq,
 {
     pub iter: I,
     pub to_remove: I::Item,
-    pub already_there: bool,
+    //pub already_there: bool,
 }
 
-impl<I> Iterator for LeaveOne<I>
+impl<I> Iterator for RemoveFirst<I>
 where
     I: Iterator,
     I::Item: PartialEq,
@@ -19,14 +19,9 @@ where
         let n = self.iter.next()?;
 
         if n == self.to_remove {
-            if self.already_there {
-                self.next()
-            } else {
-                self.already_there = true;
-                Some(n)
-            }
+            self.iter.next()
         } else {
-            self.already_there = false;
+            //self.already_there = false;
             Some(n)
         }
     }

@@ -1,5 +1,5 @@
 use super::advancer::Advancer;
-use super::remove_first::LeaveOne;
+use super::remove_first::RemoveFirst;
 use std::iter::Peekable;
 
 pub trait CreateAdvancer<I: Iterator>: Iterator {
@@ -28,7 +28,7 @@ where
     I: Iterator,
     I::Item: PartialEq,
 {
-    fn leave_one(self, filter: I::Item) -> LeaveOne<I>;
+    fn leave_one(self, filter: I::Item) -> RemoveFirst<I>;
 }
 
 impl<I> IterExt<I> for I
@@ -36,11 +36,11 @@ where
     I: Iterator,
     I::Item: PartialEq,
 {
-    fn leave_one(self, filter: I::Item) -> LeaveOne<I> {
-        LeaveOne {
+    fn leave_one(self, filter: I::Item) -> RemoveFirst<I> {
+        RemoveFirst {
             iter: self,
             to_remove: filter,
-            already_there: false,
+            //already_there: false,
         }
     }
 }
