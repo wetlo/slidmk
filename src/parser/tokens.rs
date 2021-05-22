@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Token {
     Illegal,
     Linefeed,

@@ -1,12 +1,14 @@
 use std::{
     fs::File,
-    io::{BufRead, BufReader, Result},
+    io::{BufReader, Result},
     path::Path,
 };
 
 use utf8_chars::BufReadCharsExt;
 
 mod lexer;
+mod slide;
+mod slides;
 mod tokens;
 
 pub fn parse_file<P: AsRef<Path>>(path: P) -> Result<Vec<tokens::Token>> {
