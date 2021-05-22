@@ -1,5 +1,5 @@
 use super::tokens::Token;
-use crate::util::advancer::CreateAdvancer;
+use crate::util::CreateAdvancer;
 use std::iter::{Iterator, Peekable};
 
 /// iterator that iterates over all the tokens
