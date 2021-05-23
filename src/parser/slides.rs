@@ -5,6 +5,8 @@ use super::{
 };
 use crate::util::RemoveFirst;
 
+use std::path::PathBuf;
+
 pub struct Slides<I>
 where
     I: Iterator<Item = char>,
@@ -24,7 +26,7 @@ where
         }
     }
 
-    fn buf_next(&mut self) -> Option<Self::Item> {
+    fn buf_next(&mut self) -> Option<Token> {
         self.next_token.take().or_else(|| self.tokens.next())
     }
 
@@ -36,9 +38,9 @@ where
         }
     }
 
-    fn concat_text(&mut self, coll: String) -> String {
+    fn concat_text(&mut self, mut coll: String) -> String {
         loop {
-            let next = self.next();
+            let next = self.tokens.next();
             if let Some(Token::Text(s)) = next {
                 coll.push_str(&s);
             } else {
@@ -54,17 +56,37 @@ where
         todo!()
     }
 
-    fn get_content(&mut self) -> Option<Content> {
+    fn get_image(&mut self) -> Option<Content> {}
+}
+
+struct ContentIter<'a, I: Iterator<Item = char>>(&'a mut Slides<I>);
+
+impl<'a, I> Iterator for ContentIter<'a, I>
+where
+    I: Iterator<Item = char>,
+{
+    type Item = Content;
+
+    fn next(&mut self) -> Option<Self::Item> {
         use Token::*;
 
-        match self.buf_next()? {
-            Text(s) => Content::Text(self.concat_text(s)),
-            Path(p) => Content::Path(p),
+        match self.0.buf_next()? {
+            Text(s) => Some(Content::Text(self.0.concat_text(s))),
+            Path(p) => Some(Content::Path(p)),
             t => {
-                self.next_token = Some(t);
+                self.0.next_token = Some(t);
                 None
             }
         }
+    }
+}
+
+impl<'a, I> From<&'a mut Slides<I>> for ContentIter<'a, I>
+where
+    I: Iterator<Item = char>,
+{
+    fn from(slides: &'a mut Slides<I>) -> Self {
+        Self(slides)
     }
 }
 
@@ -75,6 +97,9 @@ where
     type Item = Slide;
     fn next(&mut self) -> Option<Self::Item> {
         let kind = self.get_kind()?;
-        None
+
+        let contents = ContentIter::from(self).collect();
+
+        Some(Slide { kind, contents })
     }
 }
