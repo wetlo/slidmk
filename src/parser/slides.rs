@@ -43,6 +43,8 @@ where
         loop {
             let next = self.tokens.next();
             if let Some(Token::Text(s)) = next {
+                // TODO: maybe make this more efficent (memory allocation)
+                coll.push(' '); // add a space
                 coll.push_str(&s);
             } else {
                 self.next_token = next;
