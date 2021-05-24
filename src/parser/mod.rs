@@ -6,13 +6,16 @@ use std::{
 
 use utf8_chars::BufReadCharsExt;
 
+mod iterexts;
 mod lexer;
 mod parse_error;
 mod slide;
 mod slides;
 mod tokens;
 
-pub fn parse_file<P: AsRef<Path>>(path: P) -> Result<Vec<tokens::Token>> {
+use iterexts::SlideExt;
+
+pub fn parse_file<P: AsRef<Path>>(path: P) -> Result<Vec<slide::Slide>> {
     // open a reader to read every single character inside the file
     let mut reader = BufReader::new(File::open(path)?);
 
@@ -21,6 +24,7 @@ pub fn parse_file<P: AsRef<Path>>(path: P) -> Result<Vec<tokens::Token>> {
         .map(|c| c.expect("couldn't read another char"));
 
     Ok(lexer::Lexer::new(chars)
+        .slides()
         .inspect(|token| println!("{:?}", token))
         .collect())
 }

@@ -80,10 +80,6 @@ where
         }
     }
 
-    pub fn slides(self) -> Slides<Self> {
-        Slides::new(self)
-    }
-
     /// collects all chars until a certain char appears
     /// the collected chars will be inserted into the collector if
     /// it is Some and otherwise are ignored
