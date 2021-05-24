@@ -7,6 +7,7 @@ use std::{
 use utf8_chars::BufReadCharsExt;
 
 mod lexer;
+mod parse_error;
 mod slide;
 mod slides;
 mod tokens;

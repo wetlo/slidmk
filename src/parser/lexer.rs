@@ -1,4 +1,4 @@
-use super::tokens::Token;
+use super::{slides::Slides, tokens::Token};
 use crate::util::CreateAdvancer;
 use std::iter::{Iterator, Peekable};
 
@@ -80,6 +80,10 @@ where
         }
     }
 
+    pub fn slides(self) -> Slides<Self> {
+        Slides::new(self)
+    }
+
     /// collects all chars until a certain char appears
     /// the collected chars will be inserted into the collector if
     /// it is Some and otherwise are ignored
@@ -90,28 +94,16 @@ where
         mut collector: Option<String>,
         mut escaped: bool,
     ) -> Option<String> {
-        // TODO: maybe rewrite with advance_while
-        let mut coll_fn: Box<dyn FnMut(char)> = match collector.as_mut() {
-            Some(s) => Box::new(move |c| s.push(c)),
-            None => Box::new(|_: char| ()), // () is a noop
-        };
-
-        while self.source.peek().filter(|&c| !ends.contains(c)).is_some()
-            || self.source.peek().is_some() && escaped
-        {
-            match self.source.next().unwrap_or_else(|| unreachable!()) {
-                '\\' => escaped = true,
-                c => {
+        loop {
+            match self.source.next_if(|c| !ends.contains(c) || escaped) {
+                None => return collector,
+                Some('\\') => escaped = true,
+                Some(c) => {
                     escaped = false;
-                    coll_fn(c)
+                    collector.as_mut().map(|s| s.push(c));
                 }
             }
         }
-
-        // the collect function borrows the collector mutably so
-        // to transfer ownership we need to drop it before
-        drop(coll_fn);
-        collector
     }
 
     fn update_square_brackets(&mut self, sign: i8) {

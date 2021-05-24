@@ -1,27 +1,26 @@
 use super::{
-    lexer::Lexer,
     slide::{Content, Slide},
     tokens::Token,
 };
 use crate::util::RemoveFirst;
 
-use std::path::PathBuf;
+//use std::path::PathBuf;
 
 pub struct Slides<I>
 where
-    I: Iterator<Item = char>,
+    I: Iterator<Item = Token>,
 {
-    tokens: RemoveFirst<Lexer<I>>,
+    tokens: I,
     next_token: Option<Token>,
 }
 
 impl<I> Slides<I>
 where
-    I: Iterator<Item = char>,
+    I: Iterator<Item = Token>,
 {
-    pub fn new(source: I) -> Self {
+    pub fn new(tokens: I) -> Self {
         Self {
-            tokens: RemoveFirst::new(Lexer::new(source), Token::Linefeed),
+            tokens,
             next_token: None,
         }
     }
@@ -56,14 +55,16 @@ where
         todo!()
     }
 
-    fn get_image(&mut self) -> Option<Content> {}
+    fn get_image(&mut self) -> Option<Content> {
+        todo!()
+    }
 }
 
-struct ContentIter<'a, I: Iterator<Item = char>>(&'a mut Slides<I>);
+struct ContentIter<'a, I: Iterator<Item = Token>>(&'a mut Slides<I>);
 
 impl<'a, I> Iterator for ContentIter<'a, I>
 where
-    I: Iterator<Item = char>,
+    I: Iterator<Item = Token>,
 {
     type Item = Content;
 
@@ -83,7 +84,7 @@ where
 
 impl<'a, I> From<&'a mut Slides<I>> for ContentIter<'a, I>
 where
-    I: Iterator<Item = char>,
+    I: Iterator<Item = Token>,
 {
     fn from(slides: &'a mut Slides<I>) -> Self {
         Self(slides)
@@ -92,12 +93,13 @@ where
 
 impl<I> Iterator for Slides<I>
 where
-    I: Iterator<Item = char>,
+    I: Iterator<Item = Token>,
 {
     type Item = Slide;
     fn next(&mut self) -> Option<Self::Item> {
         let kind = self.get_kind()?;
 
+        // TODO: change to Result<Content, ParseError>
         let contents = ContentIter::from(self).collect();
 
         Some(Slide { kind, contents })
