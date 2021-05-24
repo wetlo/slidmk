@@ -4,6 +4,7 @@ use std::{
     path::Path,
 };
 
+use crate::util::IterExt;
 use utf8_chars::BufReadCharsExt;
 
 mod iterexts;
@@ -24,6 +25,7 @@ pub fn parse_file<P: AsRef<Path>>(path: P) -> Result<Vec<slide::Slide>> {
         .map(|c| c.expect("couldn't read another char"));
 
     Ok(lexer::Lexer::new(chars)
+        .leave_one(tokens::Token::Linefeed)
         .slides()
         .inspect(|token| println!("{:?}", token))
         .collect())

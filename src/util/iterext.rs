@@ -23,7 +23,7 @@ impl<I: Iterator> CreateAdvancer<I> for Peekable<I> {
     }
 }
 
-/*pub trait IterExt<I>: Iterator
+pub trait IterExt<I>: Iterator
 where
     I: Iterator,
     I::Item: PartialEq,
@@ -39,4 +39,4 @@ where
     fn leave_one(self, filter: I::Item) -> RemoveFirst<I> {
         RemoveFirst::new(self, filter)
     }
-}*/
+}

@@ -2,7 +2,6 @@ use super::{
     slide::{Content, Slide},
     tokens::Token,
 };
-use crate::util::RemoveFirst;
 
 use std::path::PathBuf;
 
@@ -54,10 +53,6 @@ where
         coll
     }
 
-    fn get_list(&mut self, first_ident: u8) -> Option<Vec<(u8, String)>> {
-        todo!()
-    }
-
     fn get_image(&mut self) -> Option<(String, PathBuf)> {
         let desc = get_token!(self.buf_next(), Token::Text(d), d)?;
         let _ = get_token!(self.buf_next(), Token::SqrBracketRight, ());
@@ -78,7 +73,8 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         let ident = self.1.take().or_else(|| match self.0.buf_next()? {
             Token::ListPre(i) => Some(i),
-            Linefeed => None,
+            // TODO: maybe change it to Linefeed
+            _ => None,
         })?;
 
         let text = get_token!(self.0.buf_next(), Token::Text(s), self.0.concat_text(s))?;

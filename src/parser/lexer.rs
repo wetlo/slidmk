@@ -1,4 +1,4 @@
-use super::{slides::Slides, tokens::Token};
+use super::tokens::Token;
 use crate::util::CreateAdvancer;
 use std::iter::{Iterator, Peekable};
 
