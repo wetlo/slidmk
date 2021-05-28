@@ -1,17 +1,41 @@
 use super::{
+    parse_error::ParseError,
     slide::{Content, Slide},
     tokens::Token,
 };
 
 use std::path::PathBuf;
 
+type SResult<T> = Result<T, ParseError<'static>>;
+
+macro_rules! sokay {
+    ($inner:expr) => {
+        Some(Ok($inner))
+    };
+}
+
 macro_rules! get_token {
     ($source:expr, $pat:pat, $ret:expr) => {
         match $source {
-            Some($pat) => Some($ret),
+            Some($pat) => Ok($ret),
             // TODO: add parse errors
-            Some(_) => todo!(),
-            None => None,
+            Some(actual) => Err(ParseError {
+                expected: stringify!($pat),
+                actual: format!("{:?}", actual),
+            }),
+            None => Err(ParseError {
+                expected: stringify!($pat),
+                actual: "EOF".into(),
+            }),
+        };
+    };
+}
+
+macro_rules! ret_err {
+    ($result:expr) => {
+        match $result {
+            Ok(i) => i,
+            Err(e) => return Some(Err(e)),
         }
     };
 }
@@ -55,12 +79,12 @@ where
         coll
     }
 
-    fn get_image(&mut self) -> Option<(String, PathBuf)> {
+    fn get_image(&mut self) -> SResult<(String, PathBuf)> {
         let desc = get_token!(self.buf_next(), Token::Text(d), d)?;
-        let _ = get_token!(self.buf_next(), Token::SqrBracketRight, ());
+        let _ = get_token!(self.buf_next(), Token::SqrBracketRight, ())?;
         let path = get_token!(self.buf_next(), Token::Path(p), p)?;
 
-        Some((desc, path))
+        Ok((desc, path))
     }
 }
 
@@ -70,7 +94,7 @@ impl<'a, I> Iterator for ListItems<'a, I>
 where
     I: Iterator<Item = Token>,
 {
-    type Item = (u8, String);
+    type Item = SResult<(u8, String)>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let ident = self.1.take().or_else(|| match self.0.buf_next()? {
@@ -79,9 +103,13 @@ where
             _ => None,
         })?;
 
-        let text = get_token!(self.0.buf_next(), Token::Text(s), self.0.concat_text(s))?;
+        let text = ret_err!(get_token!(
+            self.0.buf_next(),
+            Token::Text(s),
+            self.0.concat_text(s)
+        ));
 
-        Some((ident, text))
+        sokay!((ident, text))
     }
 }
 
@@ -91,20 +119,22 @@ impl<'a, I> Iterator for ContentIter<'a, I>
 where
     I: Iterator<Item = Token>,
 {
-    type Item = Content;
+    type Item = SResult<Content>;
 
     fn next(&mut self) -> Option<Self::Item> {
         use Token::*;
 
         match self.0.buf_next()? {
-            Text(s) => Some(Content::Text(self.0.concat_text(s))),
-            Path(p) => Some(Content::Path(p)),
+            Text(s) => sokay!(Content::Text(self.0.concat_text(s))),
+            Path(p) => sokay!(Content::Path(p)),
             Linefeed => self.next(), // TODO: maybe don't use recursion
-            ListPre(i) => Some(Content::List(ListItems(self.0, Some(i)).collect())),
+            ListPre(i) => sokay!(Content::List(
+                ret_err!(ListItems(self.0, Some(i)).collect())
+            )),
             SqrBracketLeft => {
-                let (desc, path) = self.0.get_image()?;
+                let (desc, path) = ret_err!(self.0.get_image());
 
-                Some(Content::Image(desc, path))
+                sokay!(Content::Image(desc, path))
             }
             t => {
                 self.0.next_token = Some(t);
@@ -127,13 +157,19 @@ impl<I> Iterator for Slides<I>
 where
     I: Iterator<Item = Token>,
 {
-    type Item = Slide;
+    type Item = SResult<Slide>;
+
     fn next(&mut self) -> Option<Self::Item> {
-        let kind = get_token!(self.buf_next(), Token::Identifier(i), i)?;
+        let kind = match get_token!(self.buf_next(), Token::Identifier(i), i) {
+            Ok(i) => i,
+            Err(ParseError { actual: e, .. }) if e == "EOF" => return None,
+
+            Err(e) => return Some(Err(e)),
+        };
 
         // TODO: change to Result<Content, ParseError>
-        let contents = ContentIter::from(self).collect();
+        let contents = ret_err!(ContentIter::from(self).collect());
 
-        Some(Slide { kind, contents })
+        sokay!(Slide { kind, contents })
     }
 }

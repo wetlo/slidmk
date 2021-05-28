@@ -4,9 +4,9 @@ use std::{
 };
 
 #[derive(Debug)]
-struct ParseError<'a> {
-    expected: &'a str,
-    actual: String,
+pub struct ParseError<'a> {
+    pub expected: &'a str,
+    pub actual: String,
 }
 
 impl<'a> Display for ParseError<'a> {
