@@ -1,6 +1,6 @@
 use super::tokens::Token;
-use crate::util::CreateAdvancer;
-use std::iter::{Iterator, Peekable};
+use crate::util::{CreateAdvancer, IterExt, PeekN};
+use std::iter::Iterator;
 
 /// iterator that iterates over all the tokens
 /// from a given char-iterator
@@ -8,10 +8,8 @@ pub struct Lexer<I>
 where
     I: Iterator<Item = char>,
 {
-    /// stores misread characters
-    _cached: Option<String>,
     sqr_bracks: i8,
-    source: Peekable<I>,
+    source: PeekN<I>,
 }
 
 impl<I> Iterator for Lexer<I>
@@ -49,10 +47,12 @@ where
             '*' | '-' if self.is_next_whitespace() => Token::ListPre(skipped),
 
             // identifier (---IDENTIFIER)
-            '-' if self.count_while(|c| c == '-') == 2 => {
-                // TODO: add ability to readd those --- if
-                // there isn't a valid Identifier
-                self.count_while(is_whitepace);
+            '-' if self.look_for('-', 3) => {
+                // skip those two characters
+                // and unwrap is safe here because we know 2 '-' follow the first
+                let _ = self.source.by_ref().skip(3);
+                self.count_while(is_whitepace); // skip white space
+
                 Token::Identifier(self.get_identifier())
             }
 
@@ -74,9 +74,8 @@ where
     /// iterate over the chars of the source (\n should be included)
     pub fn new(chars: I) -> Self {
         Self {
-            _cached: None,
             sqr_bracks: 0,
-            source: chars.peekable(),
+            source: chars.peekable_n(),
         }
     }
 
@@ -116,6 +115,16 @@ where
         P: FnMut(char) -> bool,
     {
         self.source.advance_while(|&c| predicate(c)).count() as u8
+    }
+
+    fn look_for(&mut self, searched: char, n: usize) -> bool {
+        for i in 0..n {
+            if Some(&searched) != self.source.peek_nth(i) {
+                return false;
+            }
+        }
+
+        true
     }
 
     fn is_next_whitespace(&mut self) -> bool {
