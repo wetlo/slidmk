@@ -11,12 +11,11 @@ mod slides;
 mod tokens;
 
 use iterexts::SlideExt;
-use parse_error::ParseError;
 use slide::Slide;
 
 pub fn parse_file<P: AsRef<Path>>(
     path: P,
-) -> impl Iterator<Item = Result<Slide, ParseError<'static>>> {
+) -> impl Iterator<Item = Slide> {
     let reader = BufReader::new(match File::open(path) {
         Ok(i) => i,
         Err(e) => {
@@ -37,5 +36,12 @@ pub fn parse_file<P: AsRef<Path>>(
     lexer::Lexer::new(chars)
         .leave_one(tokens::Token::Linefeed)
         .slides()
+        .map(|s| match s {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("{}", e);
+                process::exit(1);
+            }
+        })
         .inspect(|token| println!("{:?}", token))
 }

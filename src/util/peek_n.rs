@@ -44,7 +44,7 @@ impl<I: Iterator> Iterator for PeekN<I> {
 
     fn next(&mut self) -> Option<Self::Item> {
         //self.peeked.().or_else(|| self.iter.next())
-        if self.peeked.len() > 0 {
+        if !self.peeked.is_empty() {
             Some(self.peeked.remove(0))
         } else {
             self.iter.next()
