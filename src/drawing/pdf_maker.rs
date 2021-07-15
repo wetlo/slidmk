@@ -1,23 +1,11 @@
 use super::{DResult, DrawError, Drawer};
 use crate::config::{Config, Decorations, Rectange};
 use crate::parser::Slide;
+use crate::util::pdf_util::*;
 use printpdf::{
-    Line, Mm, PdfDocument, PdfDocumentReference, PdfLayerReference, PdfPageReference, Point,
+    Line, PdfDocument, PdfDocumentReference, PdfLayerReference, PdfPageReference, Point,
 };
 use std::io::{Write, BufWriter};
-
-/*
-cant make an const function with floating point
-arithmetic, yet
-*/
-macro_rules! px_to_mm {
-    ($px:expr) => {
-        Mm($px as f64 * (25.4 / 300.0))
-    };
-}
-
-const X_SIZE: Mm = px_to_mm!(1920);
-const Y_SIZE: Mm = px_to_mm!(1080);
 
 pub struct PdfMaker {
     doc: PdfDocumentReference,
@@ -104,13 +92,4 @@ impl PdfMaker {
         (page.get_layer(layer), page)
     }
 
-}
-
-///
-fn to_pdf_rect(_rect: &Rectange<f64>) -> Vec<(Point, bool)> {
-    vec![]
-}
-
-fn _to_pdf_coords((x, y): (f64, f64)) -> (f64, f64) {
-    (x, y)
 }

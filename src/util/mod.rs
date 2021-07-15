@@ -1,7 +1,7 @@
 mod advancer;
 pub mod buff_container;
 mod iterext;
-mod pdf_util;
+pub mod pdf_util;
 mod peek_n;
 mod remove_first;
 
