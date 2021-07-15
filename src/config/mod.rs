@@ -1,6 +1,7 @@
+use crate::drawing::error::DrawError;
 use std::collections::HashMap;
 pub type StyleMap = HashMap<String, SlideStyle>;
-pub type Decorations = Vec<(Rectange, usize)>;
+pub type Decorations = Vec<(Rectange<f64>, usize)>;
 
 pub struct Config<'a> {
     pub doc_name: &'a str,
@@ -10,24 +11,34 @@ pub struct Config<'a> {
     pub slide_styles: StyleMap,
 }
 
+impl<'a> Config<'a> {
+    pub fn get_color(&self, idx: usize) -> Result<Color, DrawError> {
+        self.colors
+            .get(idx)
+            .ok_or_else(|| DrawError::NoColor(idx))
+            .map(|c| *c)
+    }
+}
+
 pub struct SlideStyle {
     /// a decoration for the slides
     /// draws a simple rectangle at the given position(item0) with the color from the index
-    decorations: Decorations,
+    pub decorations: Decorations,
     /// an area were content can appear
-    content: Vec<Rectange>,
+    pub content: Vec<Rectange<f64>>,
 }
 
 /// color struct with rgba values
 /// (red, green, blue, alpha)
-pub struct Color(pub f32, pub f32, pub f32, pub f32);
+#[derive(Clone, Copy)]
+pub struct Color(pub f64, pub f64, pub f64, pub f64);
 
-pub struct Rectange {
+pub struct Rectange<T> {
     /// original point from the top-left
-    orig: Point,
+    pub orig: Point<T>,
     /// the size of the rectangle relative to the orig Point
-    size: Point,
+    pub size: Point<T>,
 }
 
 /// a simple representation of an Rectange with 2 points
-pub struct Point(u32, u32);
+pub struct Point<T>(pub T, pub T);
