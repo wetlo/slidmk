@@ -43,13 +43,12 @@ where
                 Token::SqrBracketRight
             }
 
-            // a list item prefix
+            // a list item prefix, skipped denotes the ident
             '*' | '-' if self.is_next_whitespace() => Token::ListPre(skipped),
 
             // identifier (---IDENTIFIER)
             '-' if self.look_for('-', 3) => {
-                // skip those two characters
-                // and unwrap is safe here because we know 2 '-' follow the first
+                // skip the ---
                 let _ = self.source.by_ref().skip(3);
                 self.count_while(is_whitepace); // skip white space
 
@@ -71,7 +70,7 @@ where
     I: Iterator<Item = char>,
 {
     /// creates the TokenIterator with an
-    /// iterate over the chars of the source (\n should be included)
+    /// iterator over the chars of the source (\n should be included)
     pub fn new(chars: I) -> Self {
         Self {
             sqr_bracks: 0,
@@ -144,15 +143,14 @@ where
     fn get_path(&mut self) -> Token {
         let path = self
             .collect_until(&['"'], Some(String::new()), false)
-            .unwrap()
-            .into();
+            .unwrap();
 
         // ignore the "
         if self.source.next().is_none() {
-            // if a " doesn't exit it's a not a valid token
+            // a path needs to end with an "
             Token::Illegal
         } else {
-            Token::Path(path)
+            Token::Path(path.into())
         }
     }
 
