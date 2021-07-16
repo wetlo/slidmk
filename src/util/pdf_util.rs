@@ -1,4 +1,4 @@
-use printpdf::{Color as PdfColor, Point, Rgb, Mm};
+use printpdf::{Color as PdfColor, Mm, Point, Pt, Rgb};
 
 use crate::config::{Color, Rectange};
 
@@ -27,9 +27,17 @@ pub const X_SIZE: Mm = px_to_mm!(1920);
 pub const Y_SIZE: Mm = px_to_mm!(1080);
 
 pub fn to_pdf_rect(rect: &Rectange<f64>) -> Vec<(Point, bool)> {
-    todo!()
+    rect.points()
+        .map(|p| to_pdf_coords(p.into()))
+        .map(|(x, y)| (Point { x, y }, false))
+        .collect()
 }
 
-pub fn to_pdf_coords((x, y): (f64, f64)) -> (f64, f64) {
-    todo!()
+/// changes coordinates from the top left to
+/// bottem left pdf Pt coords
+pub fn to_pdf_coords((x, y): (f64, f64)) -> (Pt, Pt) {
+    (
+        Pt(x * Pt::from(X_SIZE).0),
+        Pt((1.0 - y) * Pt::from(Y_SIZE).0),
+    )
 }

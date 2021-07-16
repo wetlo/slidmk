@@ -1,5 +1,5 @@
 use crate::drawing::error::DrawError;
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Add};
 pub type StyleMap = HashMap<String, SlideStyle>;
 pub type Decorations = Vec<(Rectange<f64>, usize)>;
 
@@ -33,6 +33,17 @@ pub struct SlideStyle {
 #[derive(Clone, Copy)]
 pub struct Color(pub f64, pub f64, pub f64, pub f64);
 
+/// a simple 2d point with both coords going from the top-left
+#[derive(Clone, Copy)]
+pub struct Point<T>(pub T, pub T);
+
+impl<T> From<Point<T>> for (T, T) {
+    fn from(p: Point<T>) -> Self {
+        (p.0, p.1)
+    }
+}
+
+/// a simple representation of an Rectange with 2 points
 pub struct Rectange<T> {
     /// original point from the top-left
     pub orig: Point<T>,
@@ -40,5 +51,38 @@ pub struct Rectange<T> {
     pub size: Point<T>,
 }
 
-/// a simple representation of an Rectange with 2 points
-pub struct Point<T>(pub T, pub T);
+impl<T> Rectange<T> {
+    pub fn points(&'_ self) -> RectPoints<'_, T> {
+        RectPoints {
+            rect: self,
+            point: 0,
+        }
+    }
+}
+
+pub struct RectPoints<'a, T> {
+    rect: &'a Rectange<T>,
+    point: u8,
+}
+
+impl<'a, T> Iterator for RectPoints<'a, T>
+where
+    T: Clone + Copy + Add<T, Output = T>,
+{
+    type Item = Point<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let orig = &self.rect.orig;
+        let size = &self.rect.size;
+
+        self.point += 1;
+
+        match self.point {
+            1 => Some(*orig),
+            2 => Some(Point(orig.0 + size.0, orig.1)),
+            3 => Some(Point(orig.0, orig.1 + size.1)),
+            4 => Some(Point(orig.0 + size.0, orig.1 + size.1)),
+            _ => None,
+        }
+    }
+}
