@@ -2,7 +2,7 @@ use std::fs::File;
 
 use crate::{
     config::{Color, Config, StyleMap},
-    drawing::{DrawError, Drawer, pdf_maker::PdfMaker},
+    drawing::{pdf_maker::PdfMaker, DrawError, Drawer},
 };
 
 mod config;

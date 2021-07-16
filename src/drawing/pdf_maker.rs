@@ -1,11 +1,9 @@
 use super::{DResult, DrawError, Drawer};
-use crate::config::{Config, Decorations, Rectange};
+use crate::config::{Config, Decorations};
 use crate::parser::Slide;
 use crate::util::pdf_util::*;
-use printpdf::{
-    Line, PdfDocument, PdfDocumentReference, PdfLayerReference, PdfPageReference, Point,
-};
-use std::io::{Write, BufWriter};
+use printpdf::{Line, PdfDocument, PdfDocumentReference, PdfLayerReference, PdfPageReference};
+use std::io::{BufWriter, Write};
 
 pub struct PdfMaker {
     doc: PdfDocumentReference,
@@ -38,8 +36,6 @@ impl Drawer for PdfMaker {
 }
 
 impl PdfMaker {
-
-
     // TODO: maybe input the config to fix ownership problems
     fn draw_slide(&mut self, slide: Slide, config: &Config<'_>) -> DResult<()> {
         // get info of how the slide should be drawn
@@ -91,5 +87,4 @@ impl PdfMaker {
 
         (page.get_layer(layer), page)
     }
-
 }
