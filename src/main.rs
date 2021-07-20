@@ -25,6 +25,7 @@ fn main() -> Result<(), DrawError> {
         slide_styles: StyleMap::new(),
         fg_idx: 0,
         bg_idx: 0,
+        font: String::from("Sans Serif"),
     };
 
     let mut pdf = PdfMaker::with_config(&config);

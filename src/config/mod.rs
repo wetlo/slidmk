@@ -2,6 +2,7 @@ use crate::drawing::error::DrawError;
 use std::{collections::HashMap, ops::Add};
 pub type StyleMap = HashMap<String, SlideStyle>;
 pub type Decorations = Vec<(Rectange<f64>, usize)>;
+pub type Contents = Vec<(Rectange<f64>, u16)>;
 
 pub struct Config<'a> {
     pub doc_name: &'a str,
@@ -9,6 +10,8 @@ pub struct Config<'a> {
     pub fg_idx: usize,
     pub bg_idx: usize,
     pub slide_styles: StyleMap,
+    // TODO: add support for different fonts
+    pub font: String,
 }
 
 impl<'a> Config<'a> {
@@ -25,7 +28,7 @@ pub struct SlideStyle {
     /// draws a simple rectangle at the given position(item0) with the color from the index
     pub decorations: Decorations,
     /// an area were content can appear
-    pub content: Vec<Rectange<f64>>,
+    pub content: Contents,
 }
 
 /// color struct with rgba values
