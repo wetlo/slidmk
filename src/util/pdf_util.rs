@@ -38,10 +38,11 @@ pub fn to_pdf_rect(rect: &Rectangle<f64>) -> Vec<(PdfPoint, bool)> {
         .collect::<Vec<_>>()
 }
 
-pub fn pdfify_rect(rect: &Rectangle<f64>) -> Rectangle<f64> {
+pub fn pdfify_rect(Rectangle { mut orig, size }: &Rectangle<f64>) -> Rectangle<f64> {
+    orig.1 += size.1;
     Rectangle {
-        orig: to_pdf_coords(rect.orig),
-        size: rect.size,
+        orig: to_pdf_coords(orig),
+        size: *size,
     }
 }
 
