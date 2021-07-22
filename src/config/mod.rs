@@ -1,8 +1,8 @@
 use crate::drawing::error::DrawError;
 use std::{collections::HashMap, ops::Add};
 pub type StyleMap = HashMap<String, SlideStyle>;
-pub type Decorations = Vec<(Rectange<f64>, usize)>;
-pub type Contents = Vec<(Rectange<f64>, u16)>;
+pub type Decorations = Vec<(Rectangle<f64>, usize)>;
+pub type Contents = Vec<(Rectangle<f64>, u16)>;
 
 pub struct Config<'a> {
     pub doc_name: &'a str,
@@ -47,14 +47,14 @@ impl<T> From<Point<T>> for (T, T) {
 }
 
 /// a simple representation of an Rectange with 2 points
-pub struct Rectange<T> {
+pub struct Rectangle<T> {
     /// original point from the top-left
     pub orig: Point<T>,
     /// the size of the rectangle relative to the orig Point
     pub size: Point<T>,
 }
 
-impl<T> Rectange<T> {
+impl<T> Rectangle<T> {
     pub fn points(&'_ self) -> RectPoints<'_, T> {
         RectPoints {
             rect: self,
@@ -64,7 +64,7 @@ impl<T> Rectange<T> {
 }
 
 pub struct RectPoints<'a, T> {
-    rect: &'a Rectange<T>,
+    rect: &'a Rectangle<T>,
     point: u8,
 }
 

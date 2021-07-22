@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
-use printpdf::{Color as PdfColor, Mm, Point, Pt, Rgb};
+use printpdf::{Color as PdfColor, Mm, Point as PdfPoint, Pt, Rgb};
 
 use crate::{
-    config::{Color, Rectange},
+    config::{Color, Point, Rectangle},
     drawing::DrawError,
 };
 
@@ -31,20 +31,34 @@ macro_rules! px_to_mm {
 pub const X_SIZE: Mm = px_to_mm!(1920);
 pub const Y_SIZE: Mm = px_to_mm!(1080);
 
-pub fn to_pdf_rect(rect: &Rectange<f64>) -> Vec<(Point, bool)> {
-    rect.points()
-        .map(|p| to_pdf_coords(p.into()))
-        .map(|(x, y)| (Point { x, y }, false))
-        .collect()
+pub fn to_pdf_rect(rect: &Rectangle<f64>) -> Vec<(PdfPoint, bool)> {
+    pdfify_rect(rect).points()
+        .map(to_pdf_point)
+        .map(|p| (p, false))
+        .collect::<Vec<_>>()
+}
+
+pub fn pdfify_rect(rect: &Rectangle<f64>) -> Rectangle<f64> {
+    Rectangle {
+        orig: to_pdf_coords(rect.orig),
+        size: rect.size,
+    }
 }
 
 /// changes coordinates from the top left to
 /// bottem left pdf Pt coords
-pub fn to_pdf_coords((x, y): (f64, f64)) -> (Pt, Pt) {
-    (
-        Pt(x * Pt::from(X_SIZE).0),
-        Pt((1.0 - y) * Pt::from(Y_SIZE).0),
-    )
+fn to_pdf_coords(Point(x, y): Point<f64>) -> Point<f64> {
+    Point(x, 1.0 - y)
+}
+
+fn to_pdf_point(Point(x,y): Point<f64>) -> PdfPoint {
+    let x_max: Pt = X_SIZE.into();
+    let y_max: Pt = Y_SIZE.into();
+
+    PdfPoint {
+        x: Pt(x * x_max.0),
+        y: Pt(y * y_max.0),
+    }
 }
 
 pub fn get_font_path(name: &str) -> Result<PathBuf, DrawError> {
@@ -53,6 +67,6 @@ pub fn get_font_path(name: &str) -> Result<PathBuf, DrawError> {
         .find(name, None)
         .ok_or_else(|| DrawError::FontNotFound(name.into()))?
         .path;
-    
-        Ok(path)
+
+    Ok(path)
 }
