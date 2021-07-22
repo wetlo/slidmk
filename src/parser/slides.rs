@@ -126,7 +126,7 @@ where
 
         match self.0.buf_next()? {
             Text(s) => sokay!(Content::Text(self.0.concat_text(s))),
-            Path(p) => sokay!(Content::Path(p)),
+            Path(p) => sokay!(Content::Config(p)),
             Linefeed => self.next(), // TODO: maybe don't use recursion
             ListPre(i) => sokay!(Content::List(
                 ret_err!(ListItems(self.0, Some(i)).collect())

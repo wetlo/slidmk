@@ -9,7 +9,7 @@ pub struct Slide {
 #[derive(Debug)]
 pub enum Content {
     Text(String),
-    Path(PathBuf),
+    Config(PathBuf),
     Image(String, PathBuf),
     List(Vec<(u8, String)>),
 }
