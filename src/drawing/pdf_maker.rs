@@ -1,25 +1,19 @@
 use super::{DResult, DrawError, Drawer};
-use crate::config::{Config, Decorations};
+use crate::config::{Config, Contents, Decorations};
 use crate::parser::Slide;
 use crate::util::pdf_util::*;
 use printpdf::{Line, PdfDocument, PdfDocumentReference, PdfLayerReference, PdfPageReference};
+use rusttype::Font;
 use std::io::{BufWriter, Write};
+use std::path::PathBuf;
 
 pub struct PdfMaker {
     doc: PdfDocumentReference,
+    font: Font<'static>,
     slide_idx: usize,
 }
 
 impl Drawer for PdfMaker {
-    /// creates a pdf maker with information from the
-    /// config
-    fn with_config(config: &Config<'_>) -> Self {
-        Self {
-            doc: PdfDocument::empty(config.doc_name),
-            slide_idx: 0,
-        }
-    }
-
     /// draws all the slides of the iterator into the document
     fn create_slides<I>(&mut self, mut slides: I, config: &Config<'_>) -> DResult<()>
     where
@@ -36,19 +30,47 @@ impl Drawer for PdfMaker {
 }
 
 impl PdfMaker {
+    /// creates a pdf maker with information from the
+    /// config
+    pub fn with_config(config: &Config<'_>) -> DResult<Self> {
+        // TODO: add a better system to not have 2 fs interactions for rusttype and printpdf
+        let doc = PdfDocument::empty(config.doc_name);
+
+        let drawer = Self {
+            font: Self::init_font(get_font_path(&config.font)?, &doc)?,
+            doc,
+            slide_idx: 0,
+        };
+
+        Ok(drawer)
+    }
+
+    pub fn init_font(path: PathBuf, doc: &PdfDocumentReference) -> DResult<Font<'static>> {
+        std::fs::read(&path)
+            .ok()
+            .and_then(|data| {
+                doc.add_external_font(&data[..]).ok()?;
+                Font::try_from_vec(data)
+            })
+            .map_or_else(
+                || Err(DrawError::FontNotLoaded(path.to_string_lossy().into_owned())),
+                |f| Ok(f),
+            )
+    }
+
     // TODO: maybe input the config to fix ownership problems
     fn draw_slide(&mut self, slide: Slide, config: &Config<'_>) -> DResult<()> {
         // get info of how the slide should be drawn
         let kind = config
             .slide_styles
             .get(&slide.kind)
-            .ok_or_else(|| DrawError::KindNotFound(slide.kind))?;
+            .ok_or_else(|| DrawError::KindNotFound(slide.kind.clone()))?;
 
         // create the new pdf page for the slide
         let (layer, _page) = self.create_pdf_page(self.slide_idx.to_string());
 
         self.draw_decorations(&kind.decorations, layer, config)?;
-        Ok(())
+        self.draw_content(&kind.content, slide)
     }
 
     /// draws the given decoration on a given pdf-layer
@@ -74,6 +96,10 @@ impl PdfMaker {
             layer.add_shape(line)
         }
 
+        Ok(())
+    }
+
+    fn draw_content(&mut self, contents: &Contents, slide: Slide) -> DResult<()> {
         Ok(())
     }
 

@@ -28,7 +28,7 @@ fn main() -> Result<(), DrawError> {
         font: String::from("Sans Serif"),
     };
 
-    let mut pdf = PdfMaker::with_config(&config);
+    let mut pdf = PdfMaker::with_config(&config).expect("couldn't get the pdfmaker");
     pdf.create_slides(slides, &config).unwrap();
     let file = File::open("output.pdf").expect("couldn't open file");
     pdf.write(file)
