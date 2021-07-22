@@ -11,7 +11,7 @@ mod slides;
 mod tokens;
 
 use iterexts::SlideExt;
-pub use slide::Slide;
+pub use slide::*;
 
 pub fn parse_file<P: AsRef<Path>>(path: P) -> impl Iterator<Item = Slide> {
     let reader = BufReader::new(match File::open(path) {
