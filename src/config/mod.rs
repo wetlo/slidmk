@@ -2,7 +2,7 @@ use crate::drawing::error::DrawError;
 use std::{collections::HashMap, ops::Add};
 pub type StyleMap = HashMap<String, SlideStyle>;
 pub type Decorations = Vec<(Rectangle<f64>, usize)>;
-pub type Contents = Vec<(Rectangle<f64>, u16)>;
+pub type Contents = Vec<(Rectangle<f64>, f64)>;
 
 pub struct Config<'a> {
     pub doc_name: &'a str,
