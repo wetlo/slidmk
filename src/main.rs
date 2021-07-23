@@ -25,11 +25,17 @@ fn main() -> Result<(), DrawError> {
         slide_styles: StyleMap::new(),
         fg_idx: 0,
         bg_idx: 0,
-        font: String::from("Sans Serif"),
+        font: String::from("monospace"),
     };
 
-    let mut pdf = PdfMaker::with_config(&config).expect("couldn't get the pdfmaker");
-    pdf.create_slides(slides, &config).unwrap();
+    let mut pdf = PdfMaker::with_config(&config).unwrap(); //expect("couldn't get the pdfmaker");
+    let slides = slides.filter(|s| match s.kind == String::from("Style") {
+        // TODO: load the style sheet
+        true => false,
+        false => true,
+    });
+    pdf.create_slides(slides, &config)
+        .expect("Counldn't not create the slides do to");
     let file = File::open("output.pdf").expect("couldn't open file");
     pdf.write(file)
 }
