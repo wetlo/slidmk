@@ -12,7 +12,7 @@ mod util;
 
 fn main() -> Result<(), DrawError> {
     //println!("Hello, world!");
-    let file = std::env::args().nth(1).unwrap();
+    let file = std::env::args().nth(1).expect("usage: slidmk <file>");
     println!("file read from: {}", file);
     let slides = parser::parse_file(file);
     let config = Config {
