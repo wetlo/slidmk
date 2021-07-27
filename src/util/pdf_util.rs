@@ -32,7 +32,8 @@ pub const X_SIZE: Mm = px_to_mm!(1920);
 pub const Y_SIZE: Mm = px_to_mm!(1080);
 
 pub fn to_pdf_rect(rect: &Rectangle<f64>) -> Vec<(PdfPoint, bool)> {
-    pdfify_rect(rect).points()
+    pdfify_rect(rect)
+        .points()
         .map(to_pdf_point)
         .map(|p| (p, false))
         .collect::<Vec<_>>()
@@ -52,7 +53,7 @@ fn to_pdf_coords(Point(x, y): Point<f64>) -> Point<f64> {
     Point(x, 1.0 - y)
 }
 
-fn to_pdf_point(Point(x,y): Point<f64>) -> PdfPoint {
+fn to_pdf_point(Point(x, y): Point<f64>) -> PdfPoint {
     let x_max: Pt = X_SIZE.into();
     let y_max: Pt = Y_SIZE.into();
 
