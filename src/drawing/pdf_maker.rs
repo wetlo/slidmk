@@ -1,9 +1,10 @@
 use super::{DResult, DrawError, Drawer};
-use crate::config::{Config, Contents, Decorations, Rectangle};
+use crate::config::{Config, Contents, Decorations, Point, Rectangle};
 use crate::parser::{Content, Slide};
 use crate::util::pdf_util::*;
 use printpdf::{
-    IndirectFontRef, Line, PdfDocument, PdfDocumentReference, PdfLayerReference, PdfPageReference,
+    IndirectFontRef, Line, Mm, PdfDocument, PdfDocumentReference, PdfLayerReference,
+    PdfPageReference, Pt,
 };
 use rusttype::{Font, Scale};
 use std::io::{BufWriter, Write};
@@ -122,20 +123,22 @@ impl PdfMaker {
         let mut layer = page.add_layer("");
         for ((area, font_size), content) in contents.iter().zip(slide.contents.into_iter()) {
             let args = DrawingArgs {
-                area: pdfify_rect(area),
+                area: make_inner_pt(&to_bottom_left(area)),
                 font_size: *font_size,
                 layer: layer.clone(),
             };
 
             layer.set_font(&self.font_pdf, args.font_size as f64);
             match content {
-                Content::Text(s) => self.text(s, args),
+                Content::Text(s) => {
+                    self.text(s, &args);
+                }
                 Content::Config(_) => panic!("Config calls should be handled before drawing"),
                 Content::Image(_, _) => {
                     // needs a new layer
                     layer = page.add_layer("");
                 }
-                Content::List(_) => todo!(),
+                Content::List(i) => self.list(i, args),
             }
         }
 
@@ -150,10 +153,16 @@ impl PdfMaker {
         DrawingArgs {
             layer,
             font_size,
-            area,
-        }: DrawingArgs,
-    ) {
-        let width = area.size.0 as i32;
+            area:
+                Rectangle {
+                    orig: Point(x_orig, y_orig),
+                    size,
+                },
+        }: &DrawingArgs,
+    ) -> Pt {
+        let width = size.0 .0 as i32;
+        let font_size = *font_size;
+
         // all the beginnings of the line
         let mut beginnings = self.determine_line_beginnings(&content, font_size, width);
         // TODO: maybe check for None
@@ -168,15 +177,36 @@ impl PdfMaker {
         layer.set_font(&self.font_pdf, font_size as f64);
         layer.set_line_height(font_size as f64);
         // TODO: add position
+        layer.set_text_cursor(Mm::from(*x_orig), Mm::from(*y_orig));
 
+        let mut lines_written = 0;
         // actual drawing
-        for end in endings {
+        for (end, i) in endings.enumerate() {
             layer.write_text(&content[start..end], &self.font_pdf);
             layer.add_line_break();
             start = end;
+            lines_written = i;
         }
 
         layer.end_text_section();
+
+        Pt((lines_written + 1) as f64 * font_size as f64)
+    }
+
+    fn list(&self, items: Vec<(u8, String)>, mut args: DrawingArgs) {
+        let orig_x = args.area.orig.0;
+        let space = Pt(args.font_size as f64);
+
+        let mut pt_written = Pt(0.0);
+
+        for (ident, text) in items {
+            // TODO: draw something to indicate list
+            args.area.orig.0 = orig_x + space * (ident as f64 - 1.0);
+            self.text(String::from("-"), &args);
+            args.area.orig.0 = orig_x + space;
+            args.area.size.1 -= pt_written;
+            pt_written = self.text(text, &args);
+        }
     }
 
     /// determines when a line of glyphs

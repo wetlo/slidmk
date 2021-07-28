@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub struct DrawingArgs {
-    pub area: Rectangle<f64>,
+    pub area: Rectangle<Pt>,
     pub font_size: f32,
     pub layer: PdfLayerReference,
 }
@@ -38,18 +38,24 @@ pub const X_SIZE: Mm = px_to_mm!(1920);
 pub const Y_SIZE: Mm = px_to_mm!(1080);
 
 pub fn to_pdf_rect(rect: &Rectangle<f64>) -> Vec<(PdfPoint, bool)> {
-    pdfify_rect(rect)
+    make_inner_pt(&to_bottom_left(rect))
         .points()
-        .map(to_pdf_point)
-        .map(|p| (p, false))
+        .map(|Point(x, y)| (PdfPoint { x, y }, false))
         .collect::<Vec<_>>()
 }
 
-pub fn pdfify_rect(Rectangle { mut orig, size }: &Rectangle<f64>) -> Rectangle<f64> {
+pub fn to_bottom_left(Rectangle { mut orig, size }: &Rectangle<f64>) -> Rectangle<f64> {
     orig.1 += size.1;
     Rectangle {
         orig: to_pdf_coords(orig),
         size: *size,
+    }
+}
+
+pub fn make_inner_pt(Rectangle { orig, size }: &Rectangle<f64>) -> Rectangle<Pt> {
+    Rectangle {
+        orig: scale_to_pt(*orig),
+        size: scale_to_pt(*size),
     }
 }
 
@@ -59,14 +65,11 @@ fn to_pdf_coords(Point(x, y): Point<f64>) -> Point<f64> {
     Point(x, 1.0 - y)
 }
 
-fn to_pdf_point(Point(x, y): Point<f64>) -> PdfPoint {
+fn scale_to_pt(Point(x, y): Point<f64>) -> Point<Pt> {
     let x_max: Pt = X_SIZE.into();
     let y_max: Pt = Y_SIZE.into();
 
-    PdfPoint {
-        x: Pt(x * x_max.0),
-        y: Pt(y * y_max.0),
-    }
+    Point(x_max * x, y_max * y)
 }
 
 pub fn get_font_path(name: &str) -> Result<PathBuf, DrawError> {
