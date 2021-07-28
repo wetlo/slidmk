@@ -28,8 +28,8 @@ fn main() -> Result<(), DrawError> {
         font: String::from("monospace"),
     };
 
-    let mut pdf = PdfMaker::with_config(&config).unwrap(); //expect("couldn't get the pdfmaker");
-    let slides = slides.filter(|s| match s.kind == String::from("Style") {
+    let mut pdf = PdfMaker::with_config(&config).expect("couldn't get the pdfmaker");
+    let slides = slides.filter(|s| match s.kind == "Style" {
         // TODO: load the style sheet
         true => false,
         false => true,
