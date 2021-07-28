@@ -1,11 +1,17 @@
 use std::path::PathBuf;
 
-use printpdf::{Color as PdfColor, Mm, Point as PdfPoint, Pt, Rgb};
+use printpdf::{Color as PdfColor, Mm, PdfLayerReference, Point as PdfPoint, Pt, Rgb};
 
 use crate::{
     config::{Color, Point, Rectangle},
     drawing::DrawError,
 };
+
+pub struct DrawingArgs {
+    pub area: Rectangle<f64>,
+    pub font_size: f32,
+    pub layer: PdfLayerReference,
+}
 
 impl Into<PdfColor> for Color {
     fn into(self) -> PdfColor {
