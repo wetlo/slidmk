@@ -162,7 +162,7 @@ where
         };
 
         Token::Text(
-            self.collect_until(&delims, Some(collector), first_escaped)
+            self.collect_until(delims, Some(collector), first_escaped)
                 .unwrap(),
         )
     }

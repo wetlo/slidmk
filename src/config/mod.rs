@@ -19,7 +19,7 @@ impl<'a> Config<'a> {
     pub fn get_color(&self, idx: usize) -> Result<Color, DrawError> {
         self.colors
             .get(idx)
-            .ok_or_else(|| DrawError::NoColor(idx))
+            .ok_or(DrawError::NoColor(idx))
             .map(|c| *c)
     }
 }
