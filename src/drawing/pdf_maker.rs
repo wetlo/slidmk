@@ -3,7 +3,7 @@ use crate::config::{Config, Contents, Decorations, Point, Rectangle};
 use crate::parser::{Content, Slide};
 use crate::util::pdf_util::*;
 use printpdf::{
-    IndirectFontRef, Line, Mm, PdfDocument, PdfDocumentReference, PdfLayerReference,
+    image, IndirectFontRef, Line, Mm, PdfDocument, PdfDocumentReference, PdfLayerReference,
     PdfPageReference, Pt,
 };
 use rusttype::{Font, Scale};
@@ -134,8 +134,9 @@ impl PdfMaker {
                     self.text(s, &args);
                 }
                 Content::Config(_) => panic!("Config calls should be handled before drawing"),
-                Content::Image(_, _) => {
-                    // needs a new layer
+                Content::Image(_, p) => {
+                    // TODO: add description
+                    self.image(p, args)?;
                     layer = page.add_layer("");
                 }
                 Content::List(i) => self.list(i, args),
@@ -207,6 +208,31 @@ impl PdfMaker {
             args.area.size.1 -= pt_written;
             pt_written = self.text(text, &args);
         }
+    }
+
+    fn image(
+        &self,
+        image_path: PathBuf,
+        DrawingArgs {
+            layer,
+            area: Rectangle { orig: pos, .. },
+            ..
+        }: DrawingArgs,
+    ) -> DResult<()> {
+        let image = image::io::Reader::open(image_path)?.decode()?;
+        let pdf_image = printpdf::Image::from_dynamic_image(&image);
+
+        // TODO: get the scaling right
+        pdf_image.add_to_layer(
+            layer,
+            Some(pos.0.into()),
+            Some(pos.1.into()),
+            None,
+            None,
+            None,
+            None,
+        );
+        Ok(())
     }
 
     /// determines when a line of glyphs

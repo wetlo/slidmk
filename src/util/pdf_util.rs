@@ -13,12 +13,12 @@ pub struct DrawingArgs {
     pub layer: PdfLayerReference,
 }
 
-impl Into<PdfColor> for Color {
-    fn into(self) -> PdfColor {
+impl From<Color> for PdfColor {
+    fn from(c: Color) -> Self {
         PdfColor::Rgb(Rgb {
-            r: self.0,
-            g: self.1,
-            b: self.2,
+            r: c.0,
+            g: c.1,
+            b: c.2,
             icc_profile: None,
         })
     }
