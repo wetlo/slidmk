@@ -1,7 +1,7 @@
 use std::fs::File;
 
 use crate::{
-    config::{Color, Config, StyleMap},
+    config::Config,
     drawing::{pdf_maker::PdfMaker, DrawError, Drawer},
 };
 
@@ -15,18 +15,7 @@ fn main() -> Result<(), DrawError> {
     let file = std::env::args().nth(1).expect("usage: slidmk <file>");
     println!("file read from: {}", file);
     let slides = parser::parse_file(file);
-    let config = Config {
-        colors: vec![
-            Color(0.0, 0.0, 0.0, 1.0),
-            Color(1.0, 0.0, 0.0, 1.0),
-            Color(0.0, 1.0, 1.0, 1.0),
-        ],
-        doc_name: "hello world",
-        slide_styles: StyleMap::new(),
-        fg_idx: 0,
-        bg_idx: 0,
-        font: String::from("monospace"),
-    };
+    let config = Config::default();
 
     let mut pdf = PdfMaker::with_config(&config).expect("couldn't get the pdfmaker");
     let slides = slides.filter(|s| match s.kind == "Style" {

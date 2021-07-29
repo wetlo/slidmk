@@ -1,5 +1,5 @@
 use crate::drawing::error::DrawError;
-use std::{collections::HashMap, ops::Add};
+use std::{borrow::Cow, collections::HashMap, ops::Add};
 pub type StyleMap = HashMap<String, SlideStyle>;
 pub type Decorations = Vec<(Rectangle<f64>, usize)>;
 // TODO: add line spacing
@@ -21,6 +21,32 @@ impl<'a> Config<'a> {
             .get(idx)
             .ok_or(DrawError::NoColor(idx))
             .map(|c| *c)
+    }
+}
+
+impl<'a> Default for Config<'a> {
+    fn default() -> Self {
+        Self {
+            colors: vec![
+                Color(0.0, 0.0, 0.0, 1.0),
+                Color(1.0, 0.0, 0.0, 1.0),
+                Color(0.0, 1.0, 1.0, 1.0),
+            ],
+            doc_name: "hello world",
+            slide_styles: crate::map! {
+                "Title".into() => SlideStyle {
+                    decorations: vec![],
+                    content: vec![
+                        (Rectangle {
+                                orig: Point(0.0, 0.0),
+                                size: Point(1.0, 1.0) }, 12.0 ),
+                    ],
+                },
+            },
+            fg_idx: 0,
+            bg_idx: 0,
+            font: String::from("monospace"),
+        }
     }
 }
 
