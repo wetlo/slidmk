@@ -32,9 +32,9 @@ honest
 Cons
 
 ; needs to be it's own paragraph
-[this is a cat]"/path/to/image/or/other/graphic/maybe"
+[this is a tree]"assets/tree.jpg"
 
---- Another_Slide
+--- Two_Hor
 
 \; not a comment
 \* not a list item

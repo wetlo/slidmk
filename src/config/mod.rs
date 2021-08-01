@@ -34,12 +34,61 @@ impl<'a> Default for Config<'a> {
             ],
             doc_name: "hello world",
             slide_styles: crate::map! {
-                "Title".into() => SlideStyle {
+                "Title" => SlideStyle {
                     decorations: vec![],
                     content: vec![
                         (Rectangle {
                                 orig: Point(0.0, 0.0),
-                                size: Point(1.0, 1.0) }, 12.0 ),
+                                size: Point(1.0, 1.0) }, 36.0 ),
+                    ],
+                },
+
+                "Head_Cont" => SlideStyle {
+                    decorations: vec![],
+                    content: vec![
+                        (Rectangle {
+                            orig: Point(0.0, 0.0),
+                            size: Point(1.0, 0.3),
+                        }, 24.0),
+                        (Rectangle {
+                            orig: Point(0.0, 0.3),
+                            size: Point(1.0, 0.7),
+                        }, 18.0)
+                    ],
+                },
+
+                "Vert_Split" => SlideStyle {
+                    decorations: vec![],
+                    content: vec![
+                        (Rectangle {
+                            orig: Point(0.0, 0.0),
+                            size: Point(0.5, 0.3),
+                        }, 24.0),
+                        (Rectangle {
+                            orig: Point(0.0, 0.3),
+                            size: Point(0.5, 0.7),
+                        }, 18.0),
+                        (Rectangle {
+                            orig: Point(0.5, 0.0),
+                            size: Point(0.5, 0.3),
+                        }, 24.0),
+                        (Rectangle {
+                            orig: Point(0.0, 0.3),
+                            size: Point(0.5, 0.7),
+                        }, 18.0),
+                    ],
+                },
+                "Two_Hor" => SlideStyle {
+                    decorations: vec![],
+                    content: vec![
+                        (Rectangle {
+                            orig: Point(0.0, 0.0),
+                            size: Point(1.0, 0.5),
+                        }, 20.0),
+                        (Rectangle {
+                            orig: Point(0.0, 0.5),
+                            size: Point(1.0, 0.5),
+                        }, 20.0),
                     ],
                 },
             },

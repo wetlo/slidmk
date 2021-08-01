@@ -25,6 +25,6 @@ fn main() -> Result<(), DrawError> {
     });
     pdf.create_slides(slides, &config)
         .expect("Counldn't not create the slides do to");
-    let file = File::open("output.pdf").expect("couldn't open file");
+    let file = File::create("output.pdf").expect("couldn't open file");
     pdf.write(file)
 }
