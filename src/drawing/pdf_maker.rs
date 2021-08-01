@@ -161,7 +161,7 @@ impl PdfMaker {
                 },
         }: &DrawingArgs,
     ) -> Pt {
-        let width = size.0 .0 as i32;
+        let width = size.0 .0 as f32;
         let font_size = *font_size;
 
         // all the beginnings of the line
@@ -241,13 +241,13 @@ impl PdfMaker {
         &'a self,
         text: &'a str,
         font_size: f32,
-        width: i32,
+        width: f32,
     ) -> impl Iterator<Item = usize> + 'a {
         self.font
             .layout(text, Scale::uniform(font_size), Default::default())
             // TODO: add better error handling
-            .map(|g| g.pixel_bounding_box().unwrap().width())
-            .scan(0, |state, w| {
+            .map(move |g| g.into_unpositioned().h_metrics().advance_width * font_size)
+            .scan(0.0, |state, w| {
                 *state += w;
                 Some(*state)
             })
@@ -259,10 +259,10 @@ impl PdfMaker {
     /// looks if with this glyph a new line should start
     /// if that's the case it will return Some(index)
     /// else it will return None
-    fn process_glyph_width(max_width: i32) -> impl FnMut((usize, i32)) -> Option<usize> {
-        let mut times = 0;
+    fn process_glyph_width(max_width: f32) -> impl FnMut((usize, f32)) -> Option<usize> {
+        let mut times: u8 = 0;
         move |(i, sum)| {
-            if sum > max_width * times {
+            if sum > max_width * times as f32 {
                 times += 1;
                 Some(i)
             } else {
