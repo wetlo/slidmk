@@ -161,16 +161,22 @@ impl PdfMaker {
                 },
         }: &DrawingArgs,
     ) -> Pt {
+        dbg!(&content);
         let width = size.0 .0 as f32;
         let font_size = *font_size;
 
         // all the beginnings of the line
-        let mut beginnings = self.determine_line_beginnings(&content, font_size, width);
+        let mut beginnings = self
+            .determine_line_beginnings(&content, font_size, width)
+            .inspect(|b| {
+                eprintln!("line beginning at {}", b);
+            });
         // TODO: maybe check for None
         // get the first start (0)
         let mut start = beginnings.next().unwrap();
         // add the total length of the text => all endings
         let endings = beginnings.chain(std::iter::once(content.len()));
+        dbg!(content.len());
 
         layer.begin_text_section();
 
@@ -182,13 +188,15 @@ impl PdfMaker {
 
         let mut lines_written = 0;
         // actual drawing
-        for (end, i) in endings.enumerate() {
+        for end in endings {
+            dbg!(start, end, &content[start..end]);
             layer.write_text(&content[start..end], &self.font_pdf);
             layer.add_line_break();
             start = end;
-            lines_written = i;
+            lines_written += 1;
         }
 
+        //layer.write_text(&content, &self.font_pdf);
         layer.end_text_section();
 
         Pt((lines_written + 1) as f64 * font_size as f64)
@@ -202,9 +210,10 @@ impl PdfMaker {
 
         for (ident, text) in items {
             // TODO: draw something to indicate list
-            args.area.orig.0 = orig_x + space * (ident as f64 - 1.0);
+            args.area.orig.0 = orig_x + space * ident as f64;
             self.text(String::from("-"), &args);
-            args.area.orig.0 = orig_x + space;
+            args.area.orig.0 = orig_x + space * (ident + 1) as f64;
+            args.area.orig.1 += pt_written;
             args.area.size.1 -= pt_written;
             pt_written = self.text(text, &args);
         }
@@ -230,7 +239,7 @@ impl PdfMaker {
             None,
             None,
             None,
-            None,
+            Some(DPI as f64),
         );
         Ok(())
     }
@@ -243,10 +252,16 @@ impl PdfMaker {
         font_size: f32,
         width: f32,
     ) -> impl Iterator<Item = usize> + 'a {
+        /*let v_metrics = self.font.v_metrics_unscaled();
+        let scale = (v_metrics.ascent - v_metrics.descent) / self.font.units_per_em() as f32;
+        let scale = Scale::uniform(scale);*/
+        let width = pt_to_px(width, DPI);
+        //dbg!(width);
         self.font
             .layout(text, Scale::uniform(font_size), Default::default())
             // TODO: add better error handling
-            .map(move |g| g.into_unpositioned().h_metrics().advance_width * font_size)
+            .map(move |g| g.into_unpositioned().h_metrics().advance_width)
+            //.inspect(|w| eprintln!("width of glyph: {}", w))
             .scan(0.0, |state, w| {
                 *state += w;
                 Some(*state)
@@ -260,10 +275,13 @@ impl PdfMaker {
     /// if that's the case it will return Some(index)
     /// else it will return None
     fn process_glyph_width(max_width: f32) -> impl FnMut((usize, f32)) -> Option<usize> {
-        let mut times: u8 = 0;
+        //let mut times: u8 = 0;
+        let mut last_line: f32 = 0.0;
         move |(i, sum)| {
-            if sum > max_width * times as f32 {
-                times += 1;
+            //dbg!(sum);
+            if sum - last_line > max_width || i == 0 {
+                //times += 1;
+                last_line = sum;
                 Some(i)
             } else {
                 None

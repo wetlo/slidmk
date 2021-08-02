@@ -24,14 +24,20 @@ impl From<Color> for PdfColor {
     }
 }
 
+pub const DPI: u16 = 300;
+
 /*
 cant make an const function with floating point
 arithmetic, yet
 */
 macro_rules! px_to_mm {
     ($px:expr) => {
-        Mm($px as f64 * (25.4 / 300.0))
+        Mm($px as f64 * (25.4 / DPI as f64))
     };
+}
+
+pub fn pt_to_px(pt: f32, dpi: u16) -> f32 {
+    pt * dpi as f32 / 72.0
 }
 
 pub const X_SIZE: Mm = px_to_mm!(1920);

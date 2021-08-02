@@ -41,5 +41,5 @@ pub fn parse_file<P: AsRef<Path>>(path: P) -> impl Iterator<Item = Slide> {
                 process::exit(1);
             }
         })
-        .inspect(|token| println!("{:?}", token))
+    //.inspect(|token| println!("{:?}", token))
 }

@@ -5,6 +5,7 @@ pub type Decorations = Vec<(Rectangle<f64>, usize)>;
 // TODO: add line spacing
 pub type Contents = Vec<(Rectangle<f64>, f32)>;
 
+#[derive(Debug)]
 pub struct Config<'a> {
     pub doc_name: &'a str,
     pub colors: Vec<Color>,
@@ -39,7 +40,10 @@ impl<'a> Default for Config<'a> {
                     content: vec![
                         (Rectangle {
                                 orig: Point(0.0, 0.0),
-                                size: Point(1.0, 1.0) }, 36.0 ),
+                                size: Point(1.0, 0.8) }, 36.0 ),
+                        (Rectangle {
+                                orig: Point(0.0, 0.8),
+                                size: Point(1.0, 0.2) }, 18.0 ),
                     ],
                 },
 
@@ -99,6 +103,7 @@ impl<'a> Default for Config<'a> {
     }
 }
 
+#[derive(Debug)]
 pub struct SlideStyle {
     /// a decoration for the slides
     /// draws a simple rectangle at the given position(item0) with the color from the index
@@ -109,11 +114,11 @@ pub struct SlideStyle {
 
 /// color struct with rgba values
 /// (red, green, blue, alpha)
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Color(pub f64, pub f64, pub f64, pub f64);
 
 /// a simple 2d point with both coords going from the top-left
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Point<T>(pub T, pub T);
 
 impl<T> From<Point<T>> for (T, T) {
@@ -122,6 +127,7 @@ impl<T> From<Point<T>> for (T, T) {
     }
 }
 
+#[derive(Debug)]
 /// a simple representation of an Rectange with 2 points
 pub struct Rectangle<T> {
     /// original point from the top-left
@@ -139,6 +145,7 @@ impl<T> Rectangle<T> {
     }
 }
 
+#[derive(Debug)]
 pub struct RectPoints<'a, T> {
     rect: &'a Rectangle<T>,
     point: u8,
