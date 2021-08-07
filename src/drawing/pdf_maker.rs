@@ -1,5 +1,5 @@
 use super::{DResult, DrawError, Drawer};
-use crate::config::{Config, Contents, Decorations, Point, Rectangle};
+use crate::config::{Config, Content as SlideTemplate, Decoration, Point, Rectangle};
 use crate::parser::{Content, Slide};
 use crate::util::pdf_util::*;
 use printpdf::{
@@ -90,14 +90,14 @@ impl PdfMaker {
     /// draws the given decoration a slide to the pdf layer
     fn draw_decorations(
         &mut self,
-        decos: &Decorations,
+        decos: &Vec<Decoration>,
         layer: PdfLayerReference,
         config: &Config<'_>,
     ) -> DResult<()> {
-        for (pos, color) in decos {
+        for d in decos.into_iter() {
             // creates the decoration/shape to draw
             let line = Line {
-                points: to_pdf_rect(pos),
+                points: to_pdf_rect(&d.area),
                 is_closed: true,
                 has_fill: true,
                 has_stroke: false,
@@ -105,7 +105,7 @@ impl PdfMaker {
             };
 
             // set the color
-            layer.set_fill_color(config.get_color(*color)?.into());
+            layer.set_fill_color(config.get_color(d.color_idx)?.into());
             // and draw it
             layer.add_shape(line)
         }
@@ -116,15 +116,15 @@ impl PdfMaker {
     /// draws the content of a slide to the pdf page
     fn draw_content(
         &mut self,
-        contents: &Contents,
+        contents: &Vec<SlideTemplate>,
         slide: Slide,
         page: &PdfPageReference,
     ) -> DResult<()> {
         let mut layer = page.add_layer("");
-        for ((area, font_size), content) in contents.iter().zip(slide.contents.into_iter()) {
+        for (template, content) in contents.iter().zip(slide.contents.into_iter()) {
             let args = DrawingArgs {
-                area: make_inner_pt(&to_bottom_left(area)),
-                font_size: *font_size,
+                area: make_inner_pt(&to_bottom_left(&template.area)),
+                font_size: template.font_size,
                 layer: layer.clone(),
             };
 

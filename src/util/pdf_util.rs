@@ -16,9 +16,9 @@ pub struct DrawingArgs {
 impl From<Color> for PdfColor {
     fn from(c: Color) -> Self {
         PdfColor::Rgb(Rgb {
-            r: c.0,
-            g: c.1,
-            b: c.2,
+            r: c.r,
+            g: c.g,
+            b: c.b,
             icc_profile: None,
         })
     }
