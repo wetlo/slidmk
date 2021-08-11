@@ -59,6 +59,35 @@ pub struct Rectangle<T> {
     pub size: Point<T>,
 }
 
+#[derive(Debug, Clone)]
+pub enum VertOrientation {
+    Top,
+    Middle,
+    Bottom,
+}
+
+#[derive(Debug, Clone)]
+pub enum HorOrientation {
+    Left,
+    Middle,
+    Right,
+}
+
+#[derive(Debug, Clone)]
+pub struct Orientation {
+    pub vertical: VertOrientation,
+    pub horizontal: HorOrientation,
+}
+
+impl Default for Orientation {
+    fn default() -> Self {
+        Self {
+            vertical: VertOrientation::Top,
+            horizontal: HorOrientation::Left,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Decoration {
     pub area: Rectangle<f64>,
@@ -70,6 +99,7 @@ pub struct Content {
     pub area: Rectangle<f64>,
     // TODO: add line spacing
     pub font_size: f32,
+    pub orientation: Orientation,
 }
 
 #[derive(Debug)]
@@ -103,6 +133,11 @@ impl<'a> Config<'a> {
 
 impl<'a> Default for Config<'a> {
     fn default() -> Self {
+        let header_orientation = Orientation {
+            vertical: VertOrientation::Bottom,
+            horizontal: HorOrientation::Middle,
+        };
+
         Self {
             colors: vec![
                 Color::new(0.0, 0.0, 0.0),
@@ -118,13 +153,15 @@ impl<'a> Default for Config<'a> {
                             area: Rectangle {
                                 orig: Point{x: 0.0,y: 0.0},
                                 size: Point{x: 1.0,y: 0.8} },
-                                font_size: 36.0,
+                            font_size: 36.0,
+                            orientation: header_orientation.clone(),
                         },
                         Content {
                             area: Rectangle {
                                 orig: Point{x: 0.0,y: 0.8},
                                 size: Point{x: 1.0,y: 0.2} },
-                                font_size: 18.0,
+                            font_size: 18.0,
+                            orientation: Orientation::default(),
                         },
                     ],
                 },
@@ -134,17 +171,19 @@ impl<'a> Default for Config<'a> {
                     content: vec![
                         Content {
                             area: Rectangle {
-                            orig: Point{x: 0.0,y: 0.0},
-                            size: Point{x: 1.0,y: 0.3},
-                        },
+                                orig: Point{x: 0.0,y: 0.0},
+                                size: Point{x: 1.0,y: 0.3},
+                            },
                             font_size: 24.0,
+                            orientation: header_orientation.clone(),
                         },
                         Content {
                             area: Rectangle {
-                            orig: Point{x: 0.0,y: 0.3},
-                            size: Point{x: 1.0,y: 0.7},
-                        },
+                                orig: Point{x: 0.0,y: 0.3},
+                                size: Point{x: 1.0,y: 0.7},
+                            },
                             font_size: 18.0,
+                            orientation: Orientation::default(),
                         },
                     ],
                 },
@@ -154,31 +193,35 @@ impl<'a> Default for Config<'a> {
                     content: vec![
                         Content {
                             area: Rectangle {
-                            orig: Point{x: 0.0,y: 0.0},
-                            size: Point{x: 0.5,y: 0.3},
-                        },
+                                orig: Point{x: 0.0,y: 0.0},
+                                size: Point{x: 0.5,y: 0.3},
+                            },
                             font_size: 24.0,
+                            orientation: header_orientation.clone(),
                         },
                         Content {
                             area: Rectangle {
-                            orig: Point{x: 0.0,y: 0.3},
-                            size: Point{x: 0.5,y: 0.7},
-                        },
+                                orig: Point{x: 0.0,y: 0.3},
+                                size: Point{x: 0.5,y: 0.7},
+                            },
                             font_size: 18.0,
+                            orientation: Orientation::default(),
                         },
                         Content {
                             area: Rectangle {
-                            orig: Point{x: 0.5,y: 0.0},
-                            size: Point{x: 0.5,y: 0.3},
-                        },
+                                orig: Point{x: 0.5,y: 0.0},
+                                size: Point{x: 0.5,y: 0.3},
+                            },
                             font_size: 24.0,
+                            orientation: header_orientation.clone(),
                         },
                         Content {
                             area: Rectangle {
-                            orig: Point{x: 0.0,y: 0.3},
-                            size: Point{x: 0.5,y: 0.7},
-                        },
+                                orig: Point{x: 0.0,y: 0.3},
+                                size: Point{x: 0.5,y: 0.7},
+                            },
                             font_size: 18.0,
+                            orientation: Orientation::default(),
                         },
                     ],
                 },
@@ -187,17 +230,19 @@ impl<'a> Default for Config<'a> {
                     content: vec![
                         Content {
                             area: Rectangle {
-                            orig: Point{x: 0.0,y: 0.0},
-                            size: Point{x: 1.0,y: 0.5},
-                        },
+                                orig: Point{x: 0.0,y: 0.0},
+                                size: Point{x: 1.0,y: 0.5},
+                            },
                             font_size: 20.0,
+                            orientation: Orientation::default(),
                         },
                         Content {
                             area: Rectangle {
-                            orig: Point{x: 0.0,y: 0.5},
-                            size: Point{x: 1.0,y: 0.5},
-                        },
+                                orig: Point{x: 0.0,y: 0.5},
+                                size: Point{x: 1.0,y: 0.5},
+                            },
                             font_size: 20.0,
+                            orientation: Orientation::default(),
                         },
                     ],
                 },

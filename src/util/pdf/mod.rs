@@ -77,6 +77,7 @@ pub struct TextArgs<'a> {
     pub area: PdfRect,
     pub font_size: f64,
     pub font: &'a str,
+    pub orientation: &'a config::Orientation,
 }
 
 pub struct Document {

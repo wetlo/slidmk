@@ -85,6 +85,7 @@ impl PdfMaker {
                 area,
                 font_size: template.font_size as f64,
                 font,
+                orientation: &template.orientation,
             };
 
             match content {
