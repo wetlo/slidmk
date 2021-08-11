@@ -1,4 +1,5 @@
 use crate::config;
+use arrayvec::ArrayVec;
 use printpdf::{Mm, Pt};
 use std::collections::HashMap;
 use std::io;
@@ -109,7 +110,7 @@ impl Document {
         dpi: u16,
     ) -> Result<Self> {
         let size = size.to_mm(dpi);
-        let pt_size = dbg!((size.0.into(), size.1.into()));
+        let pt_size = (size.0.into(), size.1.into());
         Ok(Self {
             size,
             drawing_area: dbg!(PdfRect::from(drawing_area, pt_size)),
@@ -134,18 +135,23 @@ impl Document {
         let page = self.inner_doc.get_page(page);
         let layer = page.get_layer(layer);
 
-        Page {
+        let page = Page {
             doc: self,
             page,
             layer,
-        }
+        };
+
+        #[cfg(debug_assertions)]
+        page.draw_rect(&page.doc.drawing_area, None, Some(Page::DBG_COLOR));
+
+        page
     }
 
     pub fn scale_pdf_rect(&self, area: config::Rectangle<f64>) -> PdfRect {
         let draw_area_size = self.drawing_area.0.size.into();
-        let mut tmp = dbg!(PdfRect::from(area, draw_area_size));
+        let mut tmp = PdfRect::from(area, draw_area_size);
         tmp.0.orig += self.drawing_area.0.orig;
-        dbg!(tmp)
+        tmp
     }
 
     fn fonts(&self, name: &str) -> (&printpdf::IndirectFontRef, &rusttype::Font<'static>) {
@@ -188,6 +194,28 @@ impl Document {
     }
 }
 
+struct LineData {
+    end_index: usize,
+    width: f32,
+}
+
+struct PositionArgs<'a> {
+    text_args: &'a TextArgs<'a>,
+    font_height: f64,
+    lines: &'a ArrayVec<LineData, 64>,
+}
+
+impl<'a> PositionArgs<'a> {
+    fn new(args: &'a TextArgs<'a>, lines: &'a ArrayVec<LineData, 64>, dpi: u16) -> Self {
+        Self {
+            lines,
+            // TODO: needs to be changed
+            font_height: dbg!(util::px_to_pt(args.font_size, dpi)) * 2.0,
+            text_args: args,
+        }
+    }
+}
+
 pub struct Page<'a> {
     pub doc: &'a mut Document,
     page: printpdf::PdfPageReference,
@@ -207,7 +235,7 @@ impl<'a> Page<'a> {
     });
 
     pub fn draw_rect(
-        &mut self,
+        &self,
         rect: &PdfRect,
         fill_color: Option<printpdf::Color>,
         stroke_color: Option<printpdf::Color>,
@@ -240,47 +268,53 @@ impl<'a> Page<'a> {
 
         // reassign for readability
         let width = args.area.0.size.x.0;
-        let orig = args.area.0.orig;
         let font_size = args.font_size;
         let dpi = self.doc.dpi;
         let layer = &self.layer;
 
-        let beginnings = Self::get_line_beginnings(rt_font, &text, font_size as f32, dpi, width);
-        // add the total length of the text => all endings
-        let endings = beginnings.chain(std::iter::once(text.len()));
+        // PANICS: content with more than 64 lines should be a sin
+        // TODO: maybe use Vec for better memory usage
+        let beginnings: ArrayVec<_, 64> =
+            Self::get_lines(rt_font, &text, font_size as f32, dpi, width).collect();
+        let mut pos_args = PositionArgs::new(args, &beginnings, dpi);
 
         layer.begin_text_section();
 
-        // settings for text
         layer.set_font(&pdf_font, font_size);
         // TODO: maybe needs to be changed
         layer.set_line_height(font_size);
-        layer.set_text_cursor(Mm::from(orig.x), Mm::from(orig.y));
 
-        let mut lines_written = 0;
+        let mut i = 0;
         let mut start = 0; // start at index 0, duh
 
-        for end in endings {
-            //dbg!(start, end, &text[start..end]);
+        for line in beginnings.iter() {
+            // prepare line
+            let end = line.end_index;
+            let pos = self.get_position(i, &mut pos_args);
+            layer.set_text_cursor(pos.x, pos.y);
+
+            dbg!(line.width, start, end, &text[start..end]);
             layer.write_text(&text[start..end], &pdf_font);
             layer.add_line_break();
             start = end;
-            lines_written += 1;
+            i += 1;
         }
 
         layer.end_text_section();
 
-        Ok(Pt((lines_written + 1) as f64 * font_size))
+        Ok(Pt((i + 1) as f64 * font_size))
     }
 
-    fn get_line_beginnings<'b>(
+    fn get_lines<'b>(
         font: &'b rusttype::Font<'static>,
         text: &'b str,
         font_size: f32,
         dpi: u16,
         width: f64,
-    ) -> impl Iterator<Item = usize> + 'b {
+    ) -> impl Iterator<Item = LineData> + 'b {
         let width = util::pt_to_px(width, dpi);
+        // TODO: do something about font
+        let font_size = util::pt_to_px(font_size as f64, dpi) as f32;
 
         font.layout(
             text,
@@ -295,19 +329,60 @@ impl<'a> Page<'a> {
             Some(*state)
         })
         .enumerate()
-        .filter_map(is_line_beginning(width as f32))
+        .filter_map(is_line_end(width as f32, text.len(), dpi))
+    }
+
+    fn get_position(&self, line_idx: usize, args: &mut PositionArgs<'_>) -> config::Point<Mm> {
+        let orientation = dbg!(args.text_args.orientation);
+        let area = &args.text_args.area.0;
+        let size = dbg!(area.size);
+
+        use config::HorOrientation as Hor;
+        use config::VertOrientation as Vert;
+        // TODO: don't forget your paper
+        let y = match orientation.vertical {
+            Vert::Top => size.y.0 - (line_idx + 1) as f64 * args.font_height,
+            Vert::Middle => size.y.0 / 2.0 - line_idx as f64 * args.font_height,
+            Vert::Bottom => (line_idx + 1) as f64 * args.font_height,
+        };
+
+        let width = args.lines[line_idx].width;
+        let x = match orientation.horizontal {
+            Hor::Left => 0.0,
+            Hor::Middle => (size.x.0 - width as f64) / 2.0,
+            Hor::Right => size.x.0 - width as f64,
+        };
+
+        let pos = config::Point { x: Pt(x), y: Pt(y) } + dbg!(area.orig);
+        dbg!(pos);
+        pos.map(|pt| pt.into())
     }
 }
 
-fn is_line_beginning(line_width: f32) -> impl FnMut((usize, f32)) -> Option<usize> {
+fn is_line_end(
+    line_width: f32,
+    str_len: usize,
+    dpi: u16,
+) -> impl FnMut((usize, f32)) -> Option<LineData> {
     let mut last_line: f32 = 0.0;
     move |(i, sum)| {
-        if sum - last_line > line_width {
+        let this_line = sum - last_line;
+
+        let index = if this_line > line_width {
             last_line = sum;
-            Some(i)
+            i
+        // the end
+        } else if i == str_len - 1 {
+            str_len
         } else {
-            None
-        }
+            return None;
+        };
+
+        Some(LineData {
+            end_index: index,
+            // TODO: something something font
+            width: util::px_to_pt(this_line as f64, dpi) as f32,
+        })
     }
 }
 

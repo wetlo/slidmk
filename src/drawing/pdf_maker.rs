@@ -106,7 +106,7 @@ impl PdfMaker {
 
     fn list(page: &mut pdf::Page, items: Vec<(u8, String)>, mut args: pdf::TextArgs) {
         /*let orig_x = args.area.orig.0;
-        let space = Pt(args.font_size as f64);
+        let space = Pt(args.font_size);
 
         let mut pt_written = Pt(0.0);
 
