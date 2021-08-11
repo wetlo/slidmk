@@ -1,5 +1,6 @@
 use crate::drawing::error::DrawError;
-use std::{collections::HashMap, ops::Add};
+use std::collections::HashMap;
+use std::ops;
 pub type StyleMap = HashMap<String, SlideStyle>;
 
 /// color struct with rgba values
@@ -19,37 +20,43 @@ impl Color {
 }
 
 /// a simple 2d point with both coords going from the top-left
-#[derive(Clone, Copy, Debug)]
-pub struct Point<T>(pub T, pub T);
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Point<T> {
+    pub x: T,
+    pub y: T,
+}
 
 impl<T> From<Point<T>> for (T, T) {
     fn from(p: Point<T>) -> Self {
-        (p.0, p.1)
+        (p.x, p.y)
     }
 }
 
-#[derive(Debug)]
+impl<U, T: ops::Add<Output = U>> ops::Add for Point<T> {
+    type Output = Point<U>;
+
+    fn add(self, other: Self) -> Self::Output {
+        Self::Output {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
+    }
+}
+
+impl<T: ops::AddAssign> ops::AddAssign for Point<T> {
+    fn add_assign(&mut self, other: Self) {
+        self.x += other.x;
+        self.y += other.y;
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 /// a simple representation of an Rectange with 2 points
 pub struct Rectangle<T> {
     /// original point from the top-left
     pub orig: Point<T>,
     /// the size of the rectangle relative to the orig Point
     pub size: Point<T>,
-}
-
-impl<T> Rectangle<T> {
-    pub fn points(&'_ self) -> RectPoints<'_, T> {
-        RectPoints {
-            rect: self,
-            point: 0,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct RectPoints<'a, T> {
-    rect: &'a Rectangle<T>,
-    point: u8,
 }
 
 #[derive(Debug)]
@@ -109,14 +116,14 @@ impl<'a> Default for Config<'a> {
                     content: vec![
                         Content {
                             area: Rectangle {
-                                orig: Point(0.0, 0.0),
-                                size: Point(1.0, 0.8) },
+                                orig: Point{x: 0.0,y: 0.0},
+                                size: Point{x: 1.0,y: 0.8} },
                                 font_size: 36.0,
                         },
                         Content {
                             area: Rectangle {
-                                orig: Point(0.0, 0.8),
-                                size: Point(1.0, 0.2) },
+                                orig: Point{x: 0.0,y: 0.8},
+                                size: Point{x: 1.0,y: 0.2} },
                                 font_size: 18.0,
                         },
                     ],
@@ -127,15 +134,15 @@ impl<'a> Default for Config<'a> {
                     content: vec![
                         Content {
                             area: Rectangle {
-                            orig: Point(0.0, 0.0),
-                            size: Point(1.0, 0.3),
+                            orig: Point{x: 0.0,y: 0.0},
+                            size: Point{x: 1.0,y: 0.3},
                         },
                             font_size: 24.0,
                         },
                         Content {
                             area: Rectangle {
-                            orig: Point(0.0, 0.3),
-                            size: Point(1.0, 0.7),
+                            orig: Point{x: 0.0,y: 0.3},
+                            size: Point{x: 1.0,y: 0.7},
                         },
                             font_size: 18.0,
                         },
@@ -147,29 +154,29 @@ impl<'a> Default for Config<'a> {
                     content: vec![
                         Content {
                             area: Rectangle {
-                            orig: Point(0.0, 0.0),
-                            size: Point(0.5, 0.3),
+                            orig: Point{x: 0.0,y: 0.0},
+                            size: Point{x: 0.5,y: 0.3},
                         },
                             font_size: 24.0,
                         },
                         Content {
                             area: Rectangle {
-                            orig: Point(0.0, 0.3),
-                            size: Point(0.5, 0.7),
+                            orig: Point{x: 0.0,y: 0.3},
+                            size: Point{x: 0.5,y: 0.7},
                         },
                             font_size: 18.0,
                         },
                         Content {
                             area: Rectangle {
-                            orig: Point(0.5, 0.0),
-                            size: Point(0.5, 0.3),
+                            orig: Point{x: 0.5,y: 0.0},
+                            size: Point{x: 0.5,y: 0.3},
                         },
                             font_size: 24.0,
                         },
                         Content {
                             area: Rectangle {
-                            orig: Point(0.0, 0.3),
-                            size: Point(0.5, 0.7),
+                            orig: Point{x: 0.0,y: 0.3},
+                            size: Point{x: 0.5,y: 0.7},
                         },
                             font_size: 18.0,
                         },
@@ -180,15 +187,15 @@ impl<'a> Default for Config<'a> {
                     content: vec![
                         Content {
                             area: Rectangle {
-                            orig: Point(0.0, 0.0),
-                            size: Point(1.0, 0.5),
+                            orig: Point{x: 0.0,y: 0.0},
+                            size: Point{x: 1.0,y: 0.5},
                         },
                             font_size: 20.0,
                         },
                         Content {
                             area: Rectangle {
-                            orig: Point(0.0, 0.5),
-                            size: Point(1.0, 0.5),
+                            orig: Point{x: 0.0,y: 0.5},
+                            size: Point{x: 1.0,y: 0.5},
                         },
                             font_size: 20.0,
                         },
@@ -198,28 +205,6 @@ impl<'a> Default for Config<'a> {
             fg_idx: 0,
             bg_idx: 0,
             font: String::from("monospace"),
-        }
-    }
-}
-
-impl<'a, T> Iterator for RectPoints<'a, T>
-where
-    T: Clone + Copy + Add<T, Output = T>,
-{
-    type Item = Point<T>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let orig = &self.rect.orig;
-        let size = &self.rect.size;
-
-        self.point += 1;
-
-        match self.point {
-            1 => Some(*orig),
-            2 => Some(Point(orig.0 + size.0, orig.1)),
-            3 => Some(Point(orig.0, orig.1 + size.1)),
-            4 => Some(Point(orig.0 + size.0, orig.1 + size.1)),
-            _ => None,
         }
     }
 }

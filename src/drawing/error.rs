@@ -1,3 +1,4 @@
+use crate::util::pdf;
 use printpdf::image::error::ImageError;
 use printpdf::Error as PdfError;
 use std::{
@@ -12,30 +13,27 @@ pub enum DrawError {
     ImageNotLoaded(ImageError),
     KindNotFound(String),
     NoColor(usize),
-    FontConfigNotLoaded,
-    FontNotFound(String),
-    FontNotLoaded(String),
+    Pdf(pdf::PdfError),
 }
 
 impl Error for DrawError {}
 
 impl Display for DrawError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        use DrawError::*;
         match self {
-            Self::IoError(e) => e.fmt(f),
-            Self::KindNotFound(actual) => write!(f, "couldn't find pdf kind {}", actual),
-            Self::NoColor(idx) => write!(f, "no color found at index {}.", idx),
-            Self::ImageNotLoaded(e) => write!(f, "couldn't decode the image due to: {}", e),
-            Self::FontNotFound(font) => write!(f, "couldn't find the font {}", font),
-            Self::FontConfigNotLoaded => write!(f, "couldn't load the font config"),
-            Self::FontNotLoaded(font) => write!(f, "couldn't find the font {}", font),
+            IoError(e) => e.fmt(f),
+            KindNotFound(actual) => write!(f, "couldn't find pdf kind {}", actual),
+            NoColor(idx) => write!(f, "no color found at index {}.", idx),
+            ImageNotLoaded(e) => write!(f, "couldn't decode the image due to: {}", e),
+            Pdf(e) => write!(f, "an pdf error occurred: {}", e),
         }
     }
 }
 
-impl From<PdfError> for DrawError {
-    fn from(e: PdfError) -> Self {
-        Self::IoError(e)
+impl From<pdf::PdfError> for DrawError {
+    fn from(e: pdf::PdfError) -> Self {
+        Self::Pdf(e)
     }
 }
 
@@ -48,5 +46,11 @@ impl From<ImageError> for DrawError {
 impl From<IoError> for DrawError {
     fn from(e: IoError) -> Self {
         Self::IoError(e.into())
+    }
+}
+
+impl From<PdfError> for DrawError {
+    fn from(e: PdfError) -> Self {
+        Self::IoError(e)
     }
 }

@@ -2,7 +2,7 @@ mod advancer;
 pub mod buff_container;
 mod iterext;
 pub mod macros;
-pub mod pdf_util;
+pub mod pdf;
 mod peek_n;
 mod remove_first;
 
