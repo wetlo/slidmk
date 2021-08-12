@@ -108,11 +108,20 @@ impl<'a> RtFont<'a> {
 
                 *last = Some(g.id());
                 // gets the width of the glyph
-                let width = g.scaled(self.scale).h_metrics().advance_width * font_size;
+                let width = self.get_width(font_size, g.id());
 
                 // the total width is the glyph itself and also the space since the last glyph
                 Some(kerning + width)
             })
+    }
+
+    fn get_width<G: rusttype::IntoGlyphId>(&self, font_size: f32, glyph: G) -> f32 {
+        self.inner
+            .glyph(glyph)
+            .scaled(self.scale)
+            .h_metrics()
+            .advance_width
+            * font_size
     }
 }
 
@@ -311,16 +320,14 @@ impl<'a> Page<'a> {
         // reassign for readability
         let width = args.area.0.size.x.0;
         let font_size = args.font_size;
-        let dpi = self.doc.dpi;
+        let whitespace_width = rt_font.get_width(font_size as f32, ' ');
         let layer = &self.layer;
 
         // PANICS: content with more than 64 lines should be a sin
         // TODO: maybe use Vec for better memory usage
         let beginnings: ArrayVec<_, 64> =
-            Self::get_lines(rt_font, &text, font_size as f32, dpi, width).collect();
+            Self::get_lines(rt_font, &text, font_size as f32, width, whitespace_width).collect();
         let mut pos_args = PositionArgs::new(args, &beginnings, rt_font);
-
-        //layer.set_line_height(font_size);
 
         let mut i = 0;
         let mut start = 0; // start at index 0, duh
@@ -330,13 +337,8 @@ impl<'a> Page<'a> {
             let end = line.end_index;
             let pos = self.get_position(i, &mut pos_args);
 
-            // drawing settings
             dbg!(line.width, start, end, &text[start..end]);
-            layer.begin_text_section();
-            layer.set_font(&pdf_font, font_size);
-            layer.set_text_cursor(pos.x, pos.y);
-            layer.write_text(&text[start..end], &pdf_font);
-            layer.end_text_section();
+            layer.use_text(&text[start..end], font_size, pos.x, pos.y, &pdf_font);
 
             start = end;
             i += 1;
@@ -349,22 +351,24 @@ impl<'a> Page<'a> {
         font: &'b RtFont<'b>,
         text: &'b str,
         font_size: f32,
-        _dpi: u16,
         width: f64,
+        whitespace_width: f32,
     ) -> impl Iterator<Item = LineData> + 'b {
         eprintln!("max width of the line: {}", width);
 
-        text.split_whitespace()
+        // TODO: maybe support other chars
+        text.split_ascii_whitespace()
             .map(move |word| {
                 Some((
                     // the start index of the word
                     util::get_index_of(word, text),
                     // the width of the word
+                    // TODO: add the width of the pending whitespace
                     font.text_width(font_size, word.chars()).sum(),
                 ))
             })
             .chain(std::iter::once(None)) // marks the end of the text
-            .filter_map(is_line_end(width as f32, text.len()))
+            .filter_map(is_line_end(width as f32, whitespace_width, text.len()))
     }
 
     fn get_position(&self, line_idx: usize, args: &mut PositionArgs<'_>) -> config::Point<Mm> {
@@ -396,6 +400,7 @@ impl<'a> Page<'a> {
 
 fn is_line_end(
     max_width: f32,
+    whitespace_width: f32,
     str_len: usize,
 ) -> impl FnMut(Option<(usize, f32)>) -> Option<LineData> {
     let mut p_sum = 0.0;
@@ -413,6 +418,8 @@ fn is_line_end(
                 p_sum = w;
                 tmp
             } else {
+                // add the whitespace width if this word is still on the line
+                p_sum += whitespace_width;
                 None
             }
         } else {
