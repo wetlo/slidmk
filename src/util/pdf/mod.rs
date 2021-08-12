@@ -147,7 +147,6 @@ pub struct Document {
     inner_doc: printpdf::PdfDocumentReference,
     size: (Mm, Mm),
     drawing_area: PdfRect,
-    dpi: u16,
 }
 
 // redefine for easier use in this module
@@ -165,7 +164,6 @@ impl Document {
         Ok(Self {
             size,
             drawing_area: dbg!(PdfRect::from(drawing_area, pt_size)),
-            dpi,
             font_map: Default::default(),
             pdf_fonts: vec![],
             rt_fonts: vec![],
@@ -261,7 +259,7 @@ impl<'a> PositionArgs<'a> {
         Self {
             lines,
             // TODO: needs to be changed
-            line_height: dbg!(font.line_height.0 * args.font_size),
+            line_height: font.line_height.0 * args.font_size,
             text_args: args,
         }
     }
@@ -337,11 +335,13 @@ impl<'a> Page<'a> {
             let end = line.end_index;
             let pos = self.get_position(i, &mut pos_args);
 
-            dbg!(line.width, start, end, &text[start..end]);
+            dbg!(&text[start..end], start, end, line.width, pos);
             layer.use_text(&text[start..end], font_size, pos.x, pos.y, &pdf_font);
 
-            start = end;
-            i += 1;
+            // the end is always at a whitespace
+            // except for the last
+            start = end + 1;
+            i += 1; // increase the index
         }
 
         Ok(Pt((i + 1) as f64 * font_size))
@@ -372,9 +372,9 @@ impl<'a> Page<'a> {
     }
 
     fn get_position(&self, line_idx: usize, args: &mut PositionArgs<'_>) -> config::Point<Mm> {
-        let orientation = dbg!(args.text_args.orientation);
+        let orientation = args.text_args.orientation;
         let area = &args.text_args.area.0;
-        let size = dbg!(area.size);
+        let size = area.size;
 
         use config::HorOrientation as Hor;
         use config::VertOrientation as Vert;
@@ -392,8 +392,8 @@ impl<'a> Page<'a> {
             Hor::Right => size.x.0 - width as f64,
         };
 
-        let pos = config::Point { x: Pt(x), y: Pt(y) } + dbg!(area.orig);
-        dbg!(pos);
+        let pos = config::Point { x: Pt(x), y: Pt(y) } + area.orig;
+        //dbg!(pos);
         pos.map(|pt| pt.into())
     }
 }
@@ -410,13 +410,15 @@ fn is_line_end(
             p_sum += w;
 
             if p_sum > max_width {
-                let tmp = Some(LineData {
-                    end_index: i,
-                    width: p_sum,
-                });
-
+                let line_width = p_sum - w;
                 p_sum = w;
-                tmp
+
+                Some(LineData {
+                    // get the index of the whitespace before
+                    end_index: i - 1,
+                    // w overshoot
+                    width: line_width,
+                })
             } else {
                 // add the whitespace width if this word is still on the line
                 p_sum += whitespace_width;
