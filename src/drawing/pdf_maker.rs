@@ -5,7 +5,7 @@ use crate::util::pdf;
 use std::io::Write;
 
 const DPI: u16 = 300;
-const SIZE: pdf::Size = pdf::Size::Px(1920.0, 1080.0);
+const SIZE: pdf::Size = pdf::Size::Px(1920, 1080);
 const DRAW_AREA: config::Rectangle<f64> = config::Rectangle {
     orig: config::Point { x: 0.05, y: 0.05 },
     size: config::Point { x: 0.9, y: 0.9 },

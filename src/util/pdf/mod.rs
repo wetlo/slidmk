@@ -3,33 +3,16 @@ use arrayvec::ArrayVec;
 use printpdf::{Mm, Pt};
 use std::collections::HashMap;
 use std::io;
+use util::{LineData, PositionArgs, RtFont};
 
 mod error;
 mod util;
 
 pub use error::PdfError;
-
-#[allow(dead_code)]
-pub enum Size {
-    Mm(f64, f64),
-    Px(f64, f64),
-    Pt(f64, f64),
-}
-
-impl Size {
-    fn to_mm(self, dpi: u16) -> (Mm, Mm) {
-        let px_to_mm = |x| Mm::from(Pt(util::px_to_pt(x, dpi)));
-
-        match self {
-            Size::Mm(x, y) => (Mm(x), Mm(y)),
-            Size::Pt(x, y) => (Pt(x).into(), Pt(y).into()),
-            Size::Px(x, y) => (px_to_mm(x), px_to_mm(y)),
-        }
-    }
-}
+pub use util::Size;
 
 /// a rectangle inside the pdf document
-/// (bottom-left)
+/// with a bottom-left origin
 #[derive(Debug, PartialEq)]
 pub struct PdfRect(config::Rectangle<Pt>);
 
@@ -74,57 +57,8 @@ impl PdfRect {
     }
 }
 
-struct RtFont<'a> {
-    inner: rusttype::Font<'a>,
-    scale: rusttype::Scale,
-    line_height: Pt,
-}
-
-impl<'a> RtFont<'a> {
-    fn from_rt(font: rusttype::Font<'a>) -> Self {
-        let v_metrics = font.v_metrics_unscaled();
-        let line_height = (v_metrics.ascent - v_metrics.descent/*+ v_metrics.line_gap*/)
-            / font.units_per_em() as f32;
-        Self {
-            inner: font,
-            scale: rusttype::Scale::uniform(line_height),
-            line_height: Pt(line_height as f64),
-        }
-    }
-
-    fn text_width<'b, I>(&'b self, font_size: f32, text: I) -> impl Iterator<Item = f32> + 'b
-    where
-        I: Iterator<Item = char> + 'b,
-    {
-        let rt_font = &self.inner;
-        rt_font
-            .glyphs_for(text)
-            .scan(None, move |last: &mut Option<rusttype::GlyphId>, g| {
-                let kerning = if let Some(last) = last {
-                    rt_font.pair_kerning(self.scale, *last, g.id())
-                } else {
-                    0.0
-                };
-
-                *last = Some(g.id());
-                // gets the width of the glyph
-                let width = self.get_width(font_size, g.id());
-
-                // the total width is the glyph itself and also the space since the last glyph
-                Some(kerning + width)
-            })
-    }
-
-    fn get_width<G: rusttype::IntoGlyphId>(&self, font_size: f32, glyph: G) -> f32 {
-        self.inner
-            .glyph(glyph)
-            .scaled(self.scale)
-            .h_metrics()
-            .advance_width
-            * font_size
-    }
-}
-
+/// a struct to bundle arguments for drawing
+/// some text to the pdf
 pub struct TextArgs<'a> {
     pub area: PdfRect,
     pub font_size: f64,
@@ -132,6 +66,7 @@ pub struct TextArgs<'a> {
     pub orientation: &'a config::Orientation,
 }
 
+/// the pdf document itself
 pub struct Document {
     /// a map to the index of a font
     /// fontname -> index
@@ -153,6 +88,7 @@ pub struct Document {
 type Result<T, E = PdfError> = std::result::Result<T, E>;
 
 impl Document {
+    /// create a pdf document with the given parameters
     pub fn new<S: Into<String>>(
         name: S,
         size: Size,
@@ -172,6 +108,9 @@ impl Document {
         })
     }
 
+    /// save the document to something implementing Write,
+    /// please don't use BufWriter here, because the Writer
+    /// will be wrapped into a BufWriter by this method.
     pub fn save<W: io::Write>(self, to: W) -> Result<(), printpdf::Error> {
         let mut buf_writer = io::BufWriter::new(to);
         self.inner_doc.save(&mut buf_writer)
@@ -196,6 +135,8 @@ impl Document {
         page
     }
 
+    /// gets an PdfRectangle inside the drawing bounds with an "scalor"
+    /// rectangle
     pub fn scale_pdf_rect(&self, area: config::Rectangle<f64>) -> PdfRect {
         let draw_area_size = self.drawing_area.0.size.into();
         let mut tmp = PdfRect::from(area, draw_area_size);
@@ -203,11 +144,13 @@ impl Document {
         tmp
     }
 
+    /// get the references to the font correspoding to the name
     fn fonts(&self, name: &str) -> (&printpdf::IndirectFontRef, &RtFont<'static>) {
         let index = *self.font_map.get(name).unwrap_or(&0);
         (&self.pdf_fonts[index], &self.rt_fonts[index])
     }
 
+    /// load a font if it's not already loaded
     fn maybe_load_font(&mut self, name: &str) -> Result<()> {
         // it is already loaded
         if self.font_map.contains_key(name) {
@@ -243,28 +186,9 @@ impl Document {
     }
 }
 
-struct LineData {
-    end_index: usize,
-    width: f32,
-}
-
-struct PositionArgs<'a> {
-    text_args: &'a TextArgs<'a>,
-    line_height: f64,
-    lines: &'a ArrayVec<LineData, 64>,
-}
-
-impl<'a> PositionArgs<'a> {
-    fn new(args: &'a TextArgs<'a>, lines: &'a ArrayVec<LineData, 64>, font: &RtFont<'_>) -> Self {
-        Self {
-            lines,
-            // TODO: needs to be changed
-            line_height: font.line_height.0 * args.font_size,
-            text_args: args,
-        }
-    }
-}
-
+/// a single page inside the pdf document
+/// used to drawing rectangles/text to this
+/// page
 pub struct Page<'a> {
     pub doc: &'a mut Document,
     page: printpdf::PdfPageReference,
@@ -272,6 +196,8 @@ pub struct Page<'a> {
 }
 
 impl<'a> Page<'a> {
+    /// create a new layer, all future operation will be done
+    /// on it until a new layer needs/is created
     pub fn new_layer<S: Into<String>>(&mut self, name: S) {
         self.layer = self.page.add_layer(name);
     }
@@ -283,6 +209,10 @@ impl<'a> Page<'a> {
         icc_profile: None,
     });
 
+    /// draw an rectangle at the given position.
+    /// If fill_color or stroke_color is some, the rectangle
+    /// will be filled or get a stroke in that color respectively.
+    /// If they're none, the rectangle will not be stroked/filled
     pub fn draw_rect(
         &self,
         rect: &PdfRect,
@@ -306,6 +236,8 @@ impl<'a> Page<'a> {
         layer.add_shape(line)
     }
 
+    /// draw the text with the text args.
+    /// if the text exceeds the horizontal boundaries, it will be word wrapped
     pub fn draw_text(&mut self, args: &TextArgs<'_>, text: String) -> Result<Pt> {
         // draw the box outlines in debug mode
         #[cfg(debug_assertions)]
@@ -325,7 +257,7 @@ impl<'a> Page<'a> {
         // TODO: maybe use Vec for better memory usage
         let beginnings: ArrayVec<_, 64> =
             Self::get_lines(rt_font, &text, font_size as f32, width, whitespace_width).collect();
-        let mut pos_args = PositionArgs::new(args, &beginnings, rt_font);
+        let pos_args = PositionArgs::new(args, &beginnings, rt_font);
 
         let mut i = 0;
         let mut start = 0; // start at index 0, duh
@@ -333,7 +265,7 @@ impl<'a> Page<'a> {
         for line in beginnings.iter() {
             // prepare line
             let end = line.end_index;
-            let pos = self.get_position(i, &mut pos_args);
+            let pos = pos_args.get_position(i);
 
             dbg!(&text[start..end], start, end, line.width, pos);
             layer.use_text(&text[start..end], font_size, pos.x, pos.y, &pdf_font);
@@ -347,6 +279,8 @@ impl<'a> Page<'a> {
         Ok(Pt((i + 1) as f64 * font_size))
     }
 
+    /// splits the text into lines which are
+    /// inside the horizontal boundaries
     fn get_lines<'b>(
         font: &'b RtFont<'b>,
         text: &'b str,
@@ -363,41 +297,18 @@ impl<'a> Page<'a> {
                     // the start index of the word
                     util::get_index_of(word, text),
                     // the width of the word
-                    // TODO: add the width of the pending whitespace
                     font.text_width(font_size, word.chars()).sum(),
                 ))
             })
             .chain(std::iter::once(None)) // marks the end of the text
             .filter_map(is_line_end(width as f32, whitespace_width, text.len()))
     }
-
-    fn get_position(&self, line_idx: usize, args: &mut PositionArgs<'_>) -> config::Point<Mm> {
-        let orientation = args.text_args.orientation;
-        let area = &args.text_args.area.0;
-        let size = area.size;
-
-        use config::HorOrientation as Hor;
-        use config::VertOrientation as Vert;
-
-        let y = match orientation.vertical {
-            Vert::Top => size.y.0 - (line_idx + 1) as f64 * args.line_height,
-            Vert::Middle => size.y.0 / 2.0 - line_idx as f64 * args.line_height,
-            Vert::Bottom => (args.lines.len() - (line_idx + 1)) as f64 * args.line_height,
-        };
-
-        let width = args.lines[line_idx].width;
-        let x = match orientation.horizontal {
-            Hor::Left => 0.0,
-            Hor::Middle => (size.x.0 - width as f64) / 2.0,
-            Hor::Right => size.x.0 - width as f64,
-        };
-
-        let pos = config::Point { x: Pt(x), y: Pt(y) } + area.orig;
-        //dbg!(pos);
-        pos.map(|pt| pt.into())
-    }
 }
 
+/// returns a function which determines,
+/// if a word exceeds the current line,
+/// if it does Some(LineData) will be returned
+/// else None.
 fn is_line_end(
     max_width: f32,
     whitespace_width: f32,
@@ -420,6 +331,7 @@ fn is_line_end(
                     width: line_width,
                 })
             } else {
+                // TODO: add kering between last and whitespace
                 // add the whitespace width if this word is still on the line
                 p_sum += whitespace_width;
                 None
@@ -469,8 +381,8 @@ mod tests {
 
     #[test]
     fn size_px_to_mm() {
-        let left = 1920.0;
-        let right = 1080.0;
+        let left = 1920;
+        let right = 1080;
         let (result_x, result_y) = super::Size::Px(left, right).to_mm(DPI);
         let expected_x = 508.0;
         let expected_y = 285.75;
