@@ -74,6 +74,48 @@ impl PdfRect {
     }
 }
 
+struct RtFont<'a> {
+    inner: rusttype::Font<'a>,
+    scale: rusttype::Scale,
+    line_height: Pt,
+}
+
+impl<'a> RtFont<'a> {
+    fn from_rt(font: rusttype::Font<'a>) -> Self {
+        let v_metrics = font.v_metrics_unscaled();
+        let line_height = (v_metrics.ascent - v_metrics.descent/*+ v_metrics.line_gap*/)
+            / font.units_per_em() as f32;
+        Self {
+            inner: font,
+            scale: rusttype::Scale::uniform(line_height),
+            line_height: Pt(line_height as f64),
+        }
+    }
+
+    fn text_width<'b, I>(&'b self, font_size: f32, text: I) -> impl Iterator<Item = f32> + 'b
+    where
+        I: Iterator<Item = char> + 'b,
+    {
+        let rt_font = &self.inner;
+        rt_font
+            .glyphs_for(text)
+            .scan(None, move |last: &mut Option<rusttype::GlyphId>, g| {
+                let kerning = if let Some(last) = last {
+                    rt_font.pair_kerning(self.scale, *last, g.id())
+                } else {
+                    0.0
+                };
+
+                *last = Some(g.id());
+                // gets the width of the glyph
+                let width = g.scaled(self.scale).h_metrics().advance_width * font_size;
+
+                // the total width is the glyph itself and also the space since the last glyph
+                Some(kerning + width)
+            })
+    }
+}
+
 pub struct TextArgs<'a> {
     pub area: PdfRect,
     pub font_size: f64,
@@ -88,7 +130,7 @@ pub struct Document {
     /// all fonts loaded as the printpdf format
     pdf_fonts: Vec<printpdf::IndirectFontRef>,
     /// all fonts loaded as the rusttype format
-    rt_fonts: Vec<rusttype::Font<'static>>,
+    rt_fonts: Vec<RtFont<'static>>,
     /// fontconfig for finding the font paths
     font_config: fontconfig::Fontconfig,
 
@@ -154,7 +196,7 @@ impl Document {
         tmp
     }
 
-    fn fonts(&self, name: &str) -> (&printpdf::IndirectFontRef, &rusttype::Font<'static>) {
+    fn fonts(&self, name: &str) -> (&printpdf::IndirectFontRef, &RtFont<'static>) {
         let index = *self.font_map.get(name).unwrap_or(&0);
         (&self.pdf_fonts[index], &self.rt_fonts[index])
     }
@@ -185,7 +227,7 @@ impl Document {
             .ok_or_else(|| PdfError::FontNotLoaded(path.to_string_lossy().into()))?;
 
         // add the fonts to the map and lists
-        self.rt_fonts.push(rt_font);
+        self.rt_fonts.push(RtFont::from_rt(rt_font));
         self.pdf_fonts.push(pdf_font);
         let index = self.rt_fonts.len() - 1;
         self.font_map.insert(String::from(name), index);
@@ -201,16 +243,16 @@ struct LineData {
 
 struct PositionArgs<'a> {
     text_args: &'a TextArgs<'a>,
-    font_height: f64,
+    line_height: f64,
     lines: &'a ArrayVec<LineData, 64>,
 }
 
 impl<'a> PositionArgs<'a> {
-    fn new(args: &'a TextArgs<'a>, lines: &'a ArrayVec<LineData, 64>, dpi: u16) -> Self {
+    fn new(args: &'a TextArgs<'a>, lines: &'a ArrayVec<LineData, 64>, font: &RtFont<'_>) -> Self {
         Self {
             lines,
             // TODO: needs to be changed
-            font_height: dbg!(util::px_to_pt(args.font_size, dpi)) * 2.0,
+            line_height: dbg!(font.line_height.0 * args.font_size),
             text_args: args,
         }
     }
@@ -276,13 +318,9 @@ impl<'a> Page<'a> {
         // TODO: maybe use Vec for better memory usage
         let beginnings: ArrayVec<_, 64> =
             Self::get_lines(rt_font, &text, font_size as f32, dpi, width).collect();
-        let mut pos_args = PositionArgs::new(args, &beginnings, dpi);
+        let mut pos_args = PositionArgs::new(args, &beginnings, rt_font);
 
-        layer.begin_text_section();
-
-        layer.set_font(&pdf_font, font_size);
-        // TODO: maybe needs to be changed
-        layer.set_line_height(font_size);
+        //layer.set_line_height(font_size);
 
         let mut i = 0;
         let mut start = 0; // start at index 0, duh
@@ -291,45 +329,42 @@ impl<'a> Page<'a> {
             // prepare line
             let end = line.end_index;
             let pos = self.get_position(i, &mut pos_args);
-            layer.set_text_cursor(pos.x, pos.y);
 
+            // drawing settings
             dbg!(line.width, start, end, &text[start..end]);
+            layer.begin_text_section();
+            layer.set_font(&pdf_font, font_size);
+            layer.set_text_cursor(pos.x, pos.y);
             layer.write_text(&text[start..end], &pdf_font);
-            layer.add_line_break();
+            layer.end_text_section();
+
             start = end;
             i += 1;
         }
-
-        layer.end_text_section();
 
         Ok(Pt((i + 1) as f64 * font_size))
     }
 
     fn get_lines<'b>(
-        font: &'b rusttype::Font<'static>,
+        font: &'b RtFont<'b>,
         text: &'b str,
         font_size: f32,
         dpi: u16,
         width: f64,
     ) -> impl Iterator<Item = LineData> + 'b {
-        let width = util::pt_to_px(width, dpi);
+        //let width = util::pt_to_px(width, dpi);
+        eprintln!("max width of the line: {}", width);
         // TODO: do something about font
-        let font_size = util::pt_to_px(font_size as f64, dpi) as f32;
+        //let font_size = util::pt_to_px(font_size as f64, dpi) as f32;
 
-        font.layout(
-            text,
-            rusttype::Scale::uniform(font_size),
-            Default::default(),
-        )
-        // get the width of every glyph
-        .map(move |g| g.into_unpositioned().h_metrics().advance_width)
-        // build partial sums
-        .scan(0.0, |state, w| {
-            *state += w;
-            Some(*state)
-        })
-        .enumerate()
-        .filter_map(is_line_end(width as f32, text.len(), dpi))
+        font.text_width(font_size, text.chars())
+            // build partial sums
+            .scan(0.0, |state, w| {
+                *state += w;
+                Some(*state)
+            })
+            .enumerate()
+            .filter_map(is_line_end(width as f32, text.len(), dpi))
     }
 
     fn get_position(&self, line_idx: usize, args: &mut PositionArgs<'_>) -> config::Point<Mm> {
@@ -341,9 +376,9 @@ impl<'a> Page<'a> {
         use config::VertOrientation as Vert;
         // TODO: don't forget your paper
         let y = match orientation.vertical {
-            Vert::Top => size.y.0 - (line_idx + 1) as f64 * args.font_height,
-            Vert::Middle => size.y.0 / 2.0 - line_idx as f64 * args.font_height,
-            Vert::Bottom => (line_idx + 1) as f64 * args.font_height,
+            Vert::Top => size.y.0 - (line_idx + 1) as f64 * args.line_height,
+            Vert::Middle => size.y.0 / 2.0 - line_idx as f64 * args.line_height,
+            Vert::Bottom => (args.lines.len() - (line_idx + 1)) as f64 * args.line_height,
         };
 
         let width = args.lines[line_idx].width;
@@ -362,7 +397,7 @@ impl<'a> Page<'a> {
 fn is_line_end(
     line_width: f32,
     str_len: usize,
-    dpi: u16,
+    _dpi: u16,
 ) -> impl FnMut((usize, f32)) -> Option<LineData> {
     let mut last_line: f32 = 0.0;
     move |(i, sum)| {
@@ -381,7 +416,7 @@ fn is_line_end(
         Some(LineData {
             end_index: index,
             // TODO: something something font
-            width: util::px_to_pt(this_line as f64, dpi) as f32,
+            width: this_line,
         })
     }
 }
