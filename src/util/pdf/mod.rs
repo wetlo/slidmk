@@ -170,7 +170,7 @@ impl Document {
         self.inner_doc.save(&mut buf_writer)
     }
 
-    /// add a new page to the document all future operation will be done
+    /// add a new page to the document, all future operation will be done
     /// on that new page
     pub fn new_page<S: Into<String>>(&'_ mut self, name: S) -> Page<'_> {
         let (page, layer) = self.inner_doc.add_page(self.size.0, self.size.1, name);
@@ -349,22 +349,22 @@ impl<'a> Page<'a> {
         font: &'b RtFont<'b>,
         text: &'b str,
         font_size: f32,
-        dpi: u16,
+        _dpi: u16,
         width: f64,
     ) -> impl Iterator<Item = LineData> + 'b {
-        //let width = util::pt_to_px(width, dpi);
         eprintln!("max width of the line: {}", width);
-        // TODO: do something about font
-        //let font_size = util::pt_to_px(font_size as f64, dpi) as f32;
 
-        font.text_width(font_size, text.chars())
-            // build partial sums
-            .scan(0.0, |state, w| {
-                *state += w;
-                Some(*state)
+        text.split_whitespace()
+            .map(move |word| {
+                Some((
+                    // the start index of the word
+                    util::get_index_of(word, text),
+                    // the width of the word
+                    font.text_width(font_size, word.chars()).sum(),
+                ))
             })
-            .enumerate()
-            .filter_map(is_line_end(width as f32, text.len(), dpi))
+            .chain(std::iter::once(None)) // marks the end of the text
+            .filter_map(is_line_end(width as f32, text.len()))
     }
 
     fn get_position(&self, line_idx: usize, args: &mut PositionArgs<'_>) -> config::Point<Mm> {
@@ -374,7 +374,7 @@ impl<'a> Page<'a> {
 
         use config::HorOrientation as Hor;
         use config::VertOrientation as Vert;
-        // TODO: don't forget your paper
+
         let y = match orientation.vertical {
             Vert::Top => size.y.0 - (line_idx + 1) as f64 * args.line_height,
             Vert::Middle => size.y.0 / 2.0 - line_idx as f64 * args.line_height,
@@ -395,29 +395,32 @@ impl<'a> Page<'a> {
 }
 
 fn is_line_end(
-    line_width: f32,
+    max_width: f32,
     str_len: usize,
-    _dpi: u16,
-) -> impl FnMut((usize, f32)) -> Option<LineData> {
-    let mut last_line: f32 = 0.0;
-    move |(i, sum)| {
-        let this_line = sum - last_line;
+) -> impl FnMut(Option<(usize, f32)>) -> Option<LineData> {
+    let mut p_sum = 0.0;
 
-        let index = if this_line > line_width {
-            last_line = sum;
-            i
-        // the end
-        } else if i == str_len - 1 {
-            str_len
+    move |o| {
+        if let Some((i, w)) = o {
+            p_sum += w;
+
+            if p_sum > max_width {
+                let tmp = Some(LineData {
+                    end_index: i,
+                    width: p_sum,
+                });
+
+                p_sum = w;
+                tmp
+            } else {
+                None
+            }
         } else {
-            return None;
-        };
-
-        Some(LineData {
-            end_index: index,
-            // TODO: something something font
-            width: this_line,
-        })
+            Some(LineData {
+                end_index: str_len,
+                width: p_sum,
+            })
+        }
     }
 }
 
