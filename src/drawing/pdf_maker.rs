@@ -58,10 +58,10 @@ impl PdfMaker {
     /// draws the given decoration a slide to the pdf layer
     fn draw_decorations(
         page: &mut pdf::Page,
-        decos: &Vec<Decoration>,
+        decos: &[Decoration],
         config: &Config<'_>,
     ) -> DResult<()> {
-        for d in decos.into_iter() {
+        for d in decos.iter() {
             let area = page.doc.scale_pdf_rect(d.area.clone());
             let color = config.get_color(d.color_idx)?;
 
@@ -74,7 +74,7 @@ impl PdfMaker {
     /// draws the content of a slide to the pdf page
     fn draw_content(
         page: &mut pdf::Page,
-        contents: &Vec<SlideTemplate>,
+        contents: &[SlideTemplate],
         slide: Slide,
         font: &str,
     ) -> DResult<()> {

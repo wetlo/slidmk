@@ -259,7 +259,7 @@ impl<'a> Default for Config<'a> {
                                 size: Point{x: 0.5,y: 0.3},
                             },
                             font_size: 24.0,
-                            orientation: header_orientation.clone(),
+                            orientation: header_orientation,
                         },
                         Content {
                             area: Rectangle {

@@ -41,10 +41,10 @@ pub enum Size {
 impl Size {
     /// converts the size enum to a tuple
     /// with the size in Mm
-    pub fn to_mm(self, dpi: u16) -> (Mm, Mm) {
+    pub fn to_mm(&self, dpi: u16) -> (Mm, Mm) {
         let px_to_mm = |x| Mm::from(Px(x).into_pt(dpi as f64));
 
-        match self {
+        match *self {
             Size::Mm(x, y) => (Mm(x), Mm(y)),
             Size::Pt(x, y) => (Pt(x).into(), Pt(y).into()),
             Size::Px(x, y) => (px_to_mm(x), px_to_mm(y)),

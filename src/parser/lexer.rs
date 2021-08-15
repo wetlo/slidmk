@@ -94,7 +94,9 @@ where
                 Some('\\') => escaped = true,
                 Some(c) => {
                     escaped = false;
-                    collector.as_mut().map(|s| s.push(c));
+                    if let Some(s) = collector.as_mut() {
+                        s.push(c)
+                    }
                 }
             }
         }

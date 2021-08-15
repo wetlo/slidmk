@@ -266,8 +266,12 @@ impl<'a> Page<'a> {
         };
 
         // set the color
-        fill_color.map(|c| layer.set_fill_color(c));
-        stroke_color.map(|c| layer.set_outline_color(c));
+        if let Some(c) = fill_color {
+            layer.set_fill_color(c);
+        }
+        if let Some(c) = stroke_color {
+            layer.set_outline_color(c);
+        }
 
         // and draw it
         layer.add_shape(line)
@@ -293,7 +297,7 @@ impl<'a> Page<'a> {
         // PANICS: content with more than 64 lines should be a sin
         // TODO: maybe use Vec for better memory usage
         let beginnings: ArrayVec<_, 64> =
-            Self::get_lines(rt_font, &text, font_size as f32, width, whitespace_width).collect();
+            Self::get_lines(rt_font, text, font_size as f32, width, whitespace_width).collect();
         let pos_args = PositionArgs::new(args, &beginnings, rt_font);
 
         let mut i = 0;
@@ -305,7 +309,7 @@ impl<'a> Page<'a> {
             let pos = pos_args.get_position(i);
 
             //dbg!(&text[start..end], start, end, line.width, pos);
-            layer.use_text(&text[start..end], font_size, pos.x, pos.y, &pdf_font);
+            layer.use_text(&text[start..end], font_size, pos.x, pos.y, pdf_font);
 
             // the end is always at a whitespace
             // except for the last
