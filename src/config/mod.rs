@@ -263,7 +263,7 @@ impl<'a> Default for Config<'a> {
                         },
                         Content {
                             area: Rectangle {
-                                orig: Point{x: 0.0,y: 0.3},
+                                orig: Point{x: 0.5,y: 0.3},
                                 size: Point{x: 0.5,y: 0.7},
                             },
                             font_size: 18.0,
