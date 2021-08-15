@@ -20,7 +20,7 @@ impl Color {
 }
 
 /// a simple 2d point with both coords going from the top-left
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct Point<T> {
     pub x: T,
     pub y: T,
@@ -44,6 +44,12 @@ impl<T> From<Point<T>> for (T, T) {
     }
 }
 
+impl<T> From<(T, T)> for Point<T> {
+    fn from((x, y): (T, T)) -> Self {
+        Self { x, y }
+    }
+}
+
 impl<U, T: ops::Add<Output = U>> ops::Add for Point<T> {
     type Output = Point<U>;
 
@@ -62,13 +68,41 @@ impl<T: ops::AddAssign> ops::AddAssign for Point<T> {
     }
 }
 
+impl<U, T: ops::Sub<Output = U>> ops::Sub for Point<T> {
+    type Output = Point<U>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self::Output {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
+    }
+}
+
+impl<T: ops::SubAssign> ops::SubAssign for Point<T> {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
-/// a simple representation of an Rectange with 2 points
+/// a simple representation of an Rectangle with 2 points
 pub struct Rectangle<T> {
     /// original point from the top-left
     pub orig: Point<T>,
     /// the size of the rectangle relative to the orig Point
     pub size: Point<T>,
+}
+
+impl<T> Rectangle<T>
+where
+    T: PartialOrd + ops::Add<Output = T> + Copy,
+{
+    /// checks whether the other rectangle is inside this one
+    pub fn is_inside_inclusive(&self, other: Point<T>) -> bool {
+        self.orig <= other && self.orig + self.size >= other
+    }
 }
 
 #[derive(Debug, Clone)]
