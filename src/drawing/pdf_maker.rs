@@ -92,9 +92,9 @@ impl PdfMaker {
                     page.draw_text(&args, &s)?;
                 }
                 Content::Config(_) => panic!("Config calls should be handled before drawing"),
-                Content::Image(_, _p) => {
+                Content::Image(_, p) => {
                     // TODO: add description
-                    page.new_layer("imaage");
+                    page.draw_image(p, &args.area)?;
                 }
                 Content::List(i) => Self::list(page, i, args)?,
             }

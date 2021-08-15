@@ -1,6 +1,6 @@
 use crate::config;
 use arrayvec::ArrayVec;
-use printpdf::{Mm, Pt};
+use printpdf::{image, Mm, Pt};
 use std::collections::HashMap;
 use std::io;
 use util::{LineData, PositionArgs, RtFont};
@@ -85,6 +85,7 @@ pub struct Document {
     /// the printpdf document
     inner_doc: printpdf::PdfDocumentReference,
     size: (Mm, Mm),
+    dpi: u16,
     drawing_area: PdfRect,
 }
 
@@ -109,6 +110,7 @@ impl Document {
             rt_fonts: vec![],
             font_config: fontconfig::Fontconfig::new().ok_or(PdfError::NoFontConfig)?,
             inner_doc: printpdf::PdfDocument::empty(name),
+            dpi,
         })
     }
 
@@ -242,8 +244,24 @@ impl<'a> Page<'a> {
         icc_profile: None,
     });
 
-    pub fn draw_image<P: AsRef<std::path::Path>>(&self, path: P, area: PdfRect) {
-        todo!();
+    pub fn draw_image<P: AsRef<std::path::Path>>(&self, path: P, area: &PdfRect) -> Result<()> {
+        let pos = area.0.orig.map(|pt| Some(Mm::from(pt)));
+        let size = area
+            .0
+            .size
+            .map(|pt| util::pt_to_px(pt.0, self.doc.dpi) as u32);
+
+        let image = image::io::Reader::open(path)?.decode()?.resize_to_fill(
+            size.x,
+            size.y,
+            image::imageops::FilterType::Triangle,
+        );
+
+        let image = printpdf::Image::from_dynamic_image(&image);
+        let layer = self.page.add_layer("image");
+
+        image.add_to_layer(layer, pos.x, pos.y, None, None, None, None);
+        Ok(())
     }
 
     /// draw an rectangle at the given position.

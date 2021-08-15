@@ -23,11 +23,11 @@ pub fn get_index_of(to: &str, origin: &str) -> usize {
     to.as_ptr() as usize - origin.as_ptr() as usize
 }
 
-/*const INCHES_PER_POINT: f64 = 72.0;
+const INCHES_PER_POINT: f64 = 72.0;
 
-pub fn pt_to_px(pt: f64, dpi: u16) -> f64 {
-    pt * dpi as f64 / INCHES_PER_POINT
-}*/
+pub fn pt_to_px(pt: f64, dpi: u16) -> usize {
+    (pt * dpi as f64 / INCHES_PER_POINT) as usize
+}
 
 #[allow(dead_code)]
 /// different ways how the size of an pdf document
