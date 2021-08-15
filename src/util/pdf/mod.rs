@@ -242,6 +242,10 @@ impl<'a> Page<'a> {
         icc_profile: None,
     });
 
+    pub fn draw_image<P: AsRef<std::path::Path>>(&self, path: P, area: PdfRect) {
+        todo!();
+    }
+
     /// draw an rectangle at the given position.
     /// If fill_color or stroke_color is some, the rectangle
     /// will be filled or get a stroke in that color respectively.
