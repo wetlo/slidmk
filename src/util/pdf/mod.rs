@@ -17,6 +17,10 @@ pub use util::Size;
 pub struct PdfRect(config::Rectangle<Pt>);
 
 impl PdfRect {
+    pub fn origin(&self) -> &config::Point<Pt> {
+        &self.0.orig
+    }
+
     /// creates an pdf rectangle from a "scalor" rectangle
     fn from(r: config::Rectangle<f64>, size: (Pt, Pt)) -> Self {
         let config::Rectangle {
@@ -99,7 +103,7 @@ impl Document {
         let pt_size = (size.0.into(), size.1.into());
         Ok(Self {
             size,
-            drawing_area: dbg!(PdfRect::from(drawing_area, pt_size)),
+            drawing_area: PdfRect::from(drawing_area, pt_size),
             font_map: Default::default(),
             pdf_fonts: vec![],
             rt_fonts: vec![],
@@ -142,6 +146,35 @@ impl Document {
         let mut tmp = PdfRect::from(area, draw_area_size);
         tmp.0.orig += self.drawing_area.0.orig;
         tmp
+    }
+
+    pub fn get_width(&mut self, text: &str, font_size: f64, font_name: &str) -> Result<Pt> {
+        self.maybe_load_font(font_name)?;
+        let (_, font) = self.fonts(font_name);
+
+        Ok(Pt(
+            font.text_width(font_size as f32, text.chars()).sum::<f32>() as f64,
+        ))
+    }
+
+    pub fn set_lower_left(&self, rect: &mut PdfRect, to: config::Point<Pt>) -> bool {
+        if self.drawing_area.0.is_inside_inclusive(to) {
+            rect.0.size += rect.0.orig - to;
+            rect.0.orig = to;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn move_upper_right(&self, rect: &mut PdfRect, to_move: config::Point<Pt>) {
+        if self
+            .drawing_area
+            .0
+            .is_inside_inclusive(rect.0.size + to_move)
+        {
+            rect.0.size += to_move;
+        }
     }
 
     /// get the references to the font correspoding to the name
@@ -238,7 +271,7 @@ impl<'a> Page<'a> {
 
     /// draw the text with the text args.
     /// if the text exceeds the horizontal boundaries, it will be word wrapped
-    pub fn draw_text(&mut self, args: &TextArgs<'_>, text: String) -> Result<Pt> {
+    pub fn draw_text(&mut self, args: &TextArgs<'_>, text: &str) -> Result<Pt> {
         // draw the box outlines in debug mode
         #[cfg(debug_assertions)]
         self.draw_rect(&args.area, None, Some(Self::DBG_COLOR));
@@ -267,7 +300,7 @@ impl<'a> Page<'a> {
             let end = line.end_index;
             let pos = pos_args.get_position(i);
 
-            dbg!(&text[start..end], start, end, line.width, pos);
+            //dbg!(&text[start..end], start, end, line.width, pos);
             layer.use_text(&text[start..end], font_size, pos.x, pos.y, &pdf_font);
 
             // the end is always at a whitespace
@@ -276,7 +309,8 @@ impl<'a> Page<'a> {
             i += 1; // increase the index
         }
 
-        Ok(Pt((i + 1) as f64 * font_size))
+        // TODO: maybe use pos.y for the vertical distance written
+        Ok(Pt(i as f64) * pos_args.line_height)
     }
 
     /// splits the text into lines which are
@@ -288,7 +322,7 @@ impl<'a> Page<'a> {
         width: f64,
         whitespace_width: f32,
     ) -> impl Iterator<Item = LineData> + 'b {
-        eprintln!("max width of the line: {}", width);
+        //eprintln!("max width of the line: {}", width);
 
         // TODO: maybe support other chars
         text.split_ascii_whitespace()

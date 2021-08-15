@@ -122,7 +122,7 @@ pub struct LineData {
 /// position of the next line
 pub struct PositionArgs<'a> {
     text_args: &'a TextArgs<'a>,
-    line_height: f64,
+    pub line_height: f64,
     lines: &'a ArrayVec<LineData, 64>,
 }
 
