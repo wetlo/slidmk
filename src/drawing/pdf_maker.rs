@@ -13,7 +13,6 @@ const DRAW_AREA: config::Rectangle<f64> = config::Rectangle {
 
 pub struct PdfMaker {
     doc: pdf::Document,
-    slide_idx: usize,
 }
 
 impl Drawer for PdfMaker {
@@ -36,12 +35,11 @@ impl PdfMaker {
     /// config
     pub fn with_config(config: &Config<'_>) -> DResult<Self> {
         let doc = pdf::Document::new(config.doc_name, SIZE, DRAW_AREA, DPI)?;
-        let drawer = Self { doc, slide_idx: 0 };
+        let drawer = Self { doc };
 
         Ok(drawer)
     }
 
-    // TODO: maybe input the config to fix ownership problems
     /// draws a slide with the information from the config
     fn draw_slide(&mut self, slide: Slide, config: &Config<'_>) -> DResult<()> {
         // get info of how the slide should be drawn
@@ -51,7 +49,7 @@ impl PdfMaker {
             .ok_or_else(|| DrawError::KindNotFound(slide.kind.clone()))?;
 
         // create the new pdf page for the slide
-        let mut page = self.doc.new_page(self.slide_idx.to_string());
+        let mut page = self.doc.new_page("");
 
         Self::draw_decorations(&mut page, &kind.decorations, config)?;
         Self::draw_content(&mut page, &kind.content, slide, &config.font)
@@ -66,6 +64,7 @@ impl PdfMaker {
         for d in decos.into_iter() {
             let area = page.doc.scale_pdf_rect(d.area.clone());
             let color = config.get_color(d.color_idx)?;
+
             page.draw_rect(&area, Some(color.into()), None)
         }
 
@@ -90,35 +89,55 @@ impl PdfMaker {
 
             match content {
                 Content::Text(s) => {
-                    page.draw_text(&args, s)?;
+                    page.draw_text(&args, &s)?;
                 }
                 Content::Config(_) => panic!("Config calls should be handled before drawing"),
                 Content::Image(_, _p) => {
                     // TODO: add description
                     page.new_layer("imaage");
                 }
-                Content::List(_i) => (), //self.list(i, args),
+                Content::List(i) => Self::list(page, i, args)?,
             }
         }
 
         Ok(())
     }
 
-    fn list(page: &mut pdf::Page, items: Vec<(u8, String)>, mut args: pdf::TextArgs) {
-        /*let orig_x = args.area.orig.0;
-        let space = Pt(args.font_size);
+    fn list(
+        page: &mut pdf::Page,
+        items: Vec<(u8, String)>,
+        mut args: pdf::TextArgs,
+    ) -> DResult<()> {
+        use printpdf::Pt;
+        let ident_width = page.doc.get_width("-", args.font_size, args.font)?;
+        let orig = *args.area.origin();
 
-        let mut pt_written = Pt(0.0);
-
+        // TODO: make lists work with different orientations
         for (ident, text) in items {
-            // TODO: draw something to indicate list
-            args.area.orig.0 = orig_x + space * ident as f64;
-            self.text(String::from("-"), &args);
-            args.area.orig.0 = orig_x + space * (ident + 1) as f64;
-            args.area.orig.1 += pt_written;
-            args.area.size.1 -= pt_written;
-            pt_written = self.text(text, &args);
-        }*/
+            page.new_layer("please end my suffering");
+            dbg!(ident);
+            // the ident of the list item and drawing the symbol
+            let mut ident_pos = orig
+                + config::Point {
+                    x: dbg!(ident_width * ident as f64),
+                    y: Pt(0.0),
+                };
+            page.doc.set_lower_left(&mut args.area, dbg!(ident_pos));
+            page.draw_text(&args, "-")?;
+            ident_pos.x += ident_width;
+            //dbg!(ident_pos.x);
+            page.doc.set_lower_left(&mut args.area, dbg!(ident_pos));
+
+            // TODO: move the area to the right according to the ident
+
+            // writing the item and move down to the next item
+            let pt_written = page.draw_text(&args, &text)?;
+            // decrease the height of the area
+            page.doc
+                .move_upper_right(&mut args.area, (Pt(0.0), Pt(0.0) - pt_written).into());
+        }
+
+        Ok(())
     }
 
     /*fn image(
