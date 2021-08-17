@@ -1,0 +1,15 @@
+{
+	colors: [
+		// foreground and background color
+		000000
+		FFFFFF
+
+		FF00FF
+		BBDD00
+		3A7743
+		216512
+	]
+	font: monospace
+	lineSpace: 1.0
+}
+

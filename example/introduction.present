@@ -1,0 +1,23 @@
+; specify the type of slide to create
+; each slide expects n elements in it
+; the builtin Title expects 2, designated
+; for the title of the presentation and author
+--- Title
+
+SlidMk
+
+; elements are seperated by at least 1 empty line
+by wetlo
+
+--- Head_Cont
+
+Why
+
+; to make a list just create a paragraph with stars/hyphens at
+; the beginning of the line
+* using normal presentation creation software is not optimal
+	; this list item will also be drawn indented
+	- it's distracting
+	- more complicated than it needs to be
+* markdown converters/latex doesn't give enough control
+	and looks hideous

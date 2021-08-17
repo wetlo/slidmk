@@ -1,0 +1,97 @@
+// TODO: make a program that generates this file
+{
+	margin: {
+		orig: {x: 0.05, y: 0.05}
+		size: {x: 0.85, y: 0.85}
+	}
+
+	slides: {
+		Title: {
+			template: [
+				{
+					orig: {x: 0.0, y: 0.0}
+					size: {x: 1.0, y: 0.8}
+					orientation: bottom middle
+					fontSize: 36.0
+				}
+
+				{
+					orig: {x: 0.0, y: 0.8}
+					size: {x: 1.0, y: 0.2}
+					orientation: top left
+					fontSize: 36.0
+				}
+			]
+		}
+
+		"Head_Cont": {
+			decoration: {
+				orig: {x: 0.0, y: 0.0}
+				size: {x: 1.0, y: 1.0}
+				color: 2
+			}
+
+			template: [
+				{
+					orig: {x: 0.0, y: 0.0}
+					size: {x: 1.0, y: 0.3}
+					fontSize: 24.0
+					orientation: bottom middle
+				}
+
+				{
+					orig: {x: 0.0, y: 0.3}
+					size: {x: 1.0, y: 0.7}
+					fontSize: 18.0
+					orientation: top left
+				}
+			]
+		}
+
+		"Vert_Split": {
+			template: [
+				{
+					orig: {x: 0.0, y: 0.0}
+					size: {x: 0.5, y: 0.3}
+					fontSize: 24.0
+					orientation: bottom middle
+				}
+				{
+					orig: {x: 0.0, y: 0.3}
+					size: {x: 0.5, y: 0.7}
+					fontSize: 18.0
+					orientation: top left
+				}
+				{
+					orig: {x: 0.5, y: 0.0}
+					size: {x: 1.0, y: 0.3}
+					fontSize: 24.0
+					orientation: bottom middle
+				}
+				{
+					orig: {x: 0.5, y: 0.3}
+					size: {x: 1.0, y: 0.7}
+					fontSize: 18.0
+					orientation: top left
+				}
+			]
+		}
+
+		"Two_Hor": {
+			template: [
+				{
+					orig: {x: 0.0, y: 0.0}
+					size: {x: 1.0, y: 0.5}
+					fontSize: 20.0
+					orientation: top left
+				}
+				{
+					orig: {x: 0.0, y: 0.5}
+					size: {x: 1.0, y: 0.5}
+					fontSize: 20.0
+					orientation: top left
+				}
+			]
+		}
+	}
+}
