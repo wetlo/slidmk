@@ -40,6 +40,7 @@ pub struct PresentStyle {
 #[derive(Debug)]
 pub struct Config<'a> {
     pub style: PresentStyle,
+    pub margin: Rectangle<f64>,
     pub slide_styles: StyleMap,
     pub doc_name: &'a str,
 }
@@ -71,6 +72,10 @@ impl<'a> Default for Config<'a> {
                 ],
                 font: String::from("monospace"),
                 line_spacing: 1.0,
+            },
+            margin: Rectangle {
+                orig: Point { x: 0.05, y: 0.05 },
+                size: Point { x: 0.9, y: 0.9 },
             },
             slide_styles: crate::map! {
                 "Title" => SlideTemplate {
