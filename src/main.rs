@@ -18,13 +18,16 @@ fn main() -> Result<(), DrawError> {
     let config = Config::default();
 
     let mut pdf = PdfMaker::with_config(&config).expect("couldn't get the pdfmaker");
-    let slides = slides.filter(|s| match s.kind == "Style" {
-        // TODO: load the style sheet
-        true => false,
-        false => true,
-    });
-    pdf.create_slides(slides, &config)
-        .expect("Counldn't not create the slides do to");
+
+    for slide in slides {
+        match slide.kind.as_str() {
+            "Style" => (), // TODO handle new style file
+            _ => pdf
+                .create_slide(slide, &config)
+                .expect("Counldn't not create the slides do to"),
+        }
+    }
+
     let file = File::create("testing/output.pdf").expect("couldn't open file");
     pdf.write(file)
 }

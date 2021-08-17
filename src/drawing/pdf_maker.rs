@@ -1,5 +1,5 @@
 use super::{DResult, DrawError, Drawer};
-use crate::config::{self, Config, Content as SlideTemplate, Decoration};
+use crate::config::{self, Config, ContentTemplate, Decoration};
 use crate::parser::{Content, Slide};
 use crate::util::pdf;
 use std::io::Write;
@@ -16,12 +16,18 @@ pub struct PdfMaker {
 }
 
 impl Drawer for PdfMaker {
-    /// draws all the slides of the iterator into the document
-    fn create_slides<I>(&mut self, mut slides: I, config: &Config<'_>) -> DResult<()>
-    where
-        I: Iterator<Item = Slide>,
-    {
-        slides.try_for_each(|slide| self.draw_slide(slide, config))
+    fn create_slide(&mut self, slide: Slide, config: &Config) -> DResult<()> {
+        // get info of how the slide should be drawn
+        let kind = config
+            .slide_styles
+            .get(&slide.kind)
+            .ok_or_else(|| DrawError::KindNotFound(slide.kind.clone()))?;
+
+        // create the new pdf page for the slide
+        let mut page = self.doc.new_page("");
+
+        Self::draw_decorations(&mut page, &kind.decorations, config)?;
+        Self::draw_content(&mut page, &kind.content, slide, &config.style.font)
     }
 
     /// writes the document to the file system
@@ -33,33 +39,18 @@ impl Drawer for PdfMaker {
 impl PdfMaker {
     /// creates a pdf maker with information from the
     /// config
-    pub fn with_config(config: &Config<'_>) -> DResult<Self> {
+    pub fn with_config(config: &Config) -> DResult<Self> {
         let doc = pdf::Document::new(config.doc_name, SIZE, DRAW_AREA, DPI)?;
         let drawer = Self { doc };
 
         Ok(drawer)
     }
 
-    /// draws a slide with the information from the config
-    fn draw_slide(&mut self, slide: Slide, config: &Config<'_>) -> DResult<()> {
-        // get info of how the slide should be drawn
-        let kind = config
-            .slide_styles
-            .get(&slide.kind)
-            .ok_or_else(|| DrawError::KindNotFound(slide.kind.clone()))?;
-
-        // create the new pdf page for the slide
-        let mut page = self.doc.new_page("");
-
-        Self::draw_decorations(&mut page, &kind.decorations, config)?;
-        Self::draw_content(&mut page, &kind.content, slide, &config.font)
-    }
-
     /// draws the given decoration a slide to the pdf layer
     fn draw_decorations(
         page: &mut pdf::Page,
         decos: &[Decoration],
-        config: &Config<'_>,
+        config: &Config,
     ) -> DResult<()> {
         for d in decos.iter() {
             let area = page.doc.scale_pdf_rect(d.area.clone());
@@ -74,7 +65,7 @@ impl PdfMaker {
     /// draws the content of a slide to the pdf page
     fn draw_content(
         page: &mut pdf::Page,
-        contents: &[SlideTemplate],
+        contents: &[ContentTemplate],
         slide: Slide,
         font: &str,
     ) -> DResult<()> {
