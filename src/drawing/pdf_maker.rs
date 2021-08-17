@@ -115,18 +115,16 @@ impl PdfMaker {
         // TODO: make lists work with different orientations
         for (ident, text) in items {
             page.new_layer("please end my suffering");
-            dbg!(ident);
             // the ident of the list item and drawing the symbol
             let mut ident_pos = orig
                 + config::Point {
-                    x: dbg!(ident_width * ident as f64),
+                    x: ident_width * ident as f64,
                     y: Pt(0.0),
                 };
-            page.doc.set_lower_left(&mut args.area, dbg!(ident_pos));
+            page.doc.set_lower_left(&mut args.area, ident_pos);
             page.draw_text(&args, "-")?;
             ident_pos.x += ident_width;
-            //dbg!(ident_pos.x);
-            page.doc.set_lower_left(&mut args.area, dbg!(ident_pos));
+            page.doc.set_lower_left(&mut args.area, ident_pos);
 
             // TODO: move the area to the right according to the ident
 
