@@ -1,7 +1,10 @@
 use crate::drawing::error::DrawError;
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::ops;
 pub type StyleMap = HashMap<String, SlideStyle>;
+
+mod de_se;
 
 /// color struct with rgba values
 /// (red, green, blue, alpha)
@@ -20,7 +23,7 @@ impl Color {
 }
 
 /// a simple 2d point with both coords going from the top-left
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Deserialize)]
 pub struct Point<T> {
     pub x: T,
     pub y: T,
@@ -86,7 +89,7 @@ impl<T: ops::SubAssign> ops::SubAssign for Point<T> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 /// a simple representation of an Rectangle with 2 points
 pub struct Rectangle<T> {
     /// original point from the top-left
@@ -294,7 +297,7 @@ impl<'a> Default for Config<'a> {
                 },
             },
             fg_idx: 0,
-            bg_idx: 0,
+            bg_idx: 1,
             font: String::from("monospace"),
         }
     }
