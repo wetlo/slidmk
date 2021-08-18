@@ -17,5 +17,6 @@ fontconfig = "0.2.1"
 arrayvec = "0.7.1"
 
 # config parsing
-serde = { version = "1.0.127", features = ["derive"] }
+serde = "^0.8.0"
+serde_derive = "^0.8.0"
 serde-hjson = "0.9.1"

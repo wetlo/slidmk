@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde_derive::Deserialize;
 use std::ops;
 
 /// color struct with rgba values
