@@ -4,39 +4,39 @@ use std::collections::HashMap;
 
 #[derive(Deserialize)]
 pub struct StyleJson {
-    colors: Vec<String>,
-    font: String,
+    pub colors: Vec<String>,
+    pub font: String,
     #[serde(rename = "lineSpace")]
-    line_spacing: f64,
+    pub line_spacing: f64,
 }
 
 #[derive(Deserialize)]
 pub struct TemplateJson {
-    margin: Rectangle<f64>,
-    slides: HashMap<String, SlideTemplate>,
+    pub margin: Rectangle<f64>,
+    pub slides: HashMap<String, SlideTemplate>,
 }
 
 #[derive(Deserialize)]
 pub struct SlideTemplate {
-    decoration: Vec<DecorationJson>,
-    template: Vec<ContentTemplate>,
+    pub decoration: Vec<DecorationJson>,
+    pub template: Vec<ContentTemplate>,
 }
 
 #[derive(Deserialize)]
 pub struct ContentTemplate {
-    orig: Point<f64>,
-    size: Point<f64>,
-    orientation: String,
+    pub orig: Point<f64>,
+    pub size: Point<f64>,
+    pub orientation: String,
     #[serde(rename = "fontSize")]
-    font_size: f32,
+    pub font_size: f32,
 }
 
 #[derive(Deserialize)]
 pub struct DecorationJson {
     // TODO: change to upper left and lower right
-    orig: Point<f64>,
-    size: Point<f64>,
-    color: usize,
+    pub orig: Point<f64>,
+    pub size: Point<f64>,
+    pub color: usize,
 }
 
 impl From<StyleJson> for super::PresentStyle {
