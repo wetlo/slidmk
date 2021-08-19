@@ -1,4 +1,5 @@
 use std::fs::File;
+use structopt::StructOpt;
 
 use crate::{
     config::Config,
@@ -11,13 +12,28 @@ mod drawing;
 mod parser;
 mod util;
 
-fn main() -> Result<(), DrawError> {
-    //println!("Hello, world!");
-    let file = std::env::args().nth(1).expect("usage: slidmk <file>");
-    //println!("file read from: {}", file);
-    let slides = parser::parse_file(file);
-    let config = Config::default();
+fn get_project_dir() -> directories::ProjectDirs {
+    directories::ProjectDirs::from("org", "wetlo", "slidmk")
+        .expect("Unknown operating system, couldn't find a good project directory")
+}
 
+fn main() -> Result<(), DrawError> {
+    let args = cli_args::Opts::from_args();
+    let dir = get_project_dir();
+    let templates = if args.templates.is_empty() {
+        vec![dir.config_dir().join("template.hjson")]
+    } else {
+        args.templates
+    };
+
+    let config = Config::from_files(
+        templates.as_ref(),
+        args.style
+            .unwrap_or_else(|| dir.config_dir().join("style.hjson")),
+    )
+    .unwrap_or_default();
+
+    let slides = parser::parse_file(args.present_file);
     let mut pdf = PdfMaker::with_config(&config).expect("couldn't get the pdfmaker");
 
     for slide in slides {
@@ -29,6 +45,6 @@ fn main() -> Result<(), DrawError> {
         }
     }
 
-    let file = File::create("testing/output.pdf").expect("couldn't open file");
+    let file = File::create(args.output).expect("couldn't open file");
     pdf.write(file)
 }

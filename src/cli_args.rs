@@ -2,11 +2,13 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
-struct Opts {
+pub struct Opts {
     #[structopt(short, long)]
-    style: Option<PathBuf>,
+    pub style: Option<PathBuf>,
     #[structopt(short, long)]
-    templates: Vec<PathBuf>,
+    pub templates: Vec<PathBuf>,
+    #[structopt(short, long, default_value = "out.pdf")]
+    pub output: PathBuf,
     #[structopt(name = "FILE")]
-    present_file: PathBuf,
+    pub present_file: PathBuf,
 }
