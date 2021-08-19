@@ -5,6 +5,7 @@ use crate::{
     drawing::{pdf_maker::PdfMaker, DrawError, Drawer},
 };
 
+mod cli_args;
 mod config;
 mod drawing;
 mod parser;
