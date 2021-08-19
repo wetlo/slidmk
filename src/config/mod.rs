@@ -56,14 +56,14 @@ fn get_reader<P: AsRef<Path>>(path: P) -> io::Result<io::BufReader<fs::File>> {
 
 impl<'a> Config<'a> {
     /// creates a config from a style and n template files
-    pub fn from_files<P, Q>(templates: &[P], style: Q) -> io::Result<Self>
+    pub fn from_files<P, Q>(templates: &[P], style: Q) -> Option<Self>
     where
         P: AsRef<Path>,
         Q: AsRef<Path>,
     {
         let style = {
-            let r = get_reader(style)?;
-            let json: de_se::StyleJson = serde_hjson::from_reader(r).unwrap();
+            let r = get_reader(style).ok()?;
+            let json: de_se::StyleJson = serde_hjson::from_reader(r).ok()?;
             PresentStyle::from(json)
         };
 
@@ -71,8 +71,8 @@ impl<'a> Config<'a> {
         let mut slide_templates = StyleMap::new();
 
         for path in templates {
-            let r = get_reader(path)?;
-            let template: de_se::TemplateJson = serde_hjson::from_reader(r).unwrap();
+            let r = get_reader(path).ok()?;
+            let template: de_se::TemplateJson = serde_hjson::from_reader(r).ok()?;
 
             // use the first margin
             if margin.is_none() {
@@ -83,7 +83,7 @@ impl<'a> Config<'a> {
             slide_templates.extend(slides);
         }
 
-        Ok(Self {
+        Some(Self {
             style,
             doc_name: "todo",
             margin: margin.unwrap(),
