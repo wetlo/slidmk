@@ -1,5 +1,8 @@
 use crate::drawing::error::DrawError;
+use serde::Deserialize;
 use std::collections::HashMap;
+use std::path::Path;
+use std::{fs, io};
 pub type StyleMap = HashMap<String, SlideTemplate>;
 
 mod de_se;
@@ -45,7 +48,56 @@ pub struct Config<'a> {
     pub doc_name: &'a str,
 }
 
+fn get_reader<P: AsRef<Path>>(path: P) -> io::Result<io::BufReader<fs::File>> {
+    let file = fs::File::open(path)?;
+
+    Ok(io::BufReader::new(file))
+}
+
 impl<'a> Config<'a> {
+    /// creates a config from a style and n template files
+    pub fn from_files<P, Q>(templates: &[P], style: Q) -> io::Result<Self>
+    where
+        P: AsRef<Path>,
+        Q: AsRef<Path>,
+    {
+        let style = {
+            let r = get_reader(style)?;
+            let json: de_se::StyleJson = serde_hjson::from_reader(r).unwrap();
+            PresentStyle::from(json)
+        };
+
+        let mut margin = None;
+        let mut slide_templates = StyleMap::new();
+
+        for path in templates {
+            let r = get_reader(path)?;
+            let template: de_se::TemplateJson = serde_hjson::from_reader(r).unwrap();
+
+            // use the first margin
+            if margin.is_none() {
+                margin = Some(template.margin);
+            }
+
+            let slides = template.slides.into_iter().map(|(k, v)| (k, v.into()));
+            slide_templates.extend(slides);
+        }
+
+        Ok(Self {
+            style,
+            doc_name: "todo",
+            margin: margin.unwrap(),
+            slide_styles: slide_templates,
+        })
+    }
+
+    /// change the style to the one specified inside the path
+    pub fn change_style<P: AsRef<Path>>(&mut self, path: P) -> io::Result<()> {
+        let json: de_se::StyleJson = serde_hjson::from_reader(get_reader(path)?).unwrap();
+        self.style = json.into();
+        Ok(())
+    }
+
     pub fn get_color(&self, idx: usize) -> Result<Color, DrawError> {
         self.style
             .colors
