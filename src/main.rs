@@ -4,6 +4,7 @@ use structopt::StructOpt;
 use crate::{
     config::Config,
     drawing::{pdf_maker::PdfMaker, DrawError, Drawer},
+    parser::Content,
 };
 
 mod cli_args;
@@ -26,7 +27,7 @@ fn main() -> Result<(), DrawError> {
         args.templates
     };
 
-    let config = Config::from_files(
+    let mut config = Config::from_files(
         templates.as_ref(),
         args.style
             .unwrap_or_else(|| dir.config_dir().join("style.hjson")),
@@ -38,7 +39,22 @@ fn main() -> Result<(), DrawError> {
 
     for slide in slides {
         match slide.kind.as_str() {
-            "Style" => (), // TODO handle new style file
+            "Style" => {
+                let path = slide
+                    .contents
+                    .into_iter()
+                    .next()
+                    .map(|c| match c {
+                        Content::Config(p) => Some(p),
+                        _ => None,
+                    })
+                    .flatten()
+                    .expect("expected path to the style sheet");
+
+                config
+                    .change_style(path)
+                    .expect("Couldn't load style sheet");
+            }
             _ => pdf
                 .create_slide(slide, &config)
                 .expect("Counldn't not create the slides do to"),
