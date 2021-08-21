@@ -1,5 +1,4 @@
 use crate::drawing::error::DrawError;
-use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::Path;
 use std::{fs, io};
@@ -122,7 +121,7 @@ impl<'a> Default for Config<'a> {
                     Color::new(1.0, 0.0, 0.0),
                     Color::new(0.0, 1.0, 1.0),
                 ],
-                font: String::from("monospace"),
+                font: String::from("Noto Sans"),
                 line_spacing: 1.0,
             },
             margin: Rectangle {
