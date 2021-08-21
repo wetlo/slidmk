@@ -21,18 +21,27 @@ fn get_project_dir() -> directories::ProjectDirs {
 fn main() -> Result<(), DrawError> {
     let args = cli_args::Opts::from_args();
     let dir = get_project_dir();
+
+    let style = args
+        .style
+        .unwrap_or_else(|| dir.config_dir().join("style.hjson"));
     let templates = if args.templates.is_empty() {
         vec![dir.config_dir().join("template.hjson")]
     } else {
         args.templates
     };
 
-    let mut config = Config::from_files(
-        templates.as_ref(),
-        args.style
-            .unwrap_or_else(|| dir.config_dir().join("style.hjson")),
-    )
-    .unwrap_or_default();
+    let mut config = Config::builder();
+
+    if style.exists() {
+        config = config.with_style(style);
+    }
+
+    if templates.iter().all(|p| p.exists()) {
+        config = config.with_templates(templates);
+    }
+
+    let mut config = config.build();
 
     let slides = parser::parse_file(args.present_file);
     let mut pdf = PdfMaker::with_config(&config).expect("couldn't get the pdfmaker");
