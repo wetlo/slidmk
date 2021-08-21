@@ -80,7 +80,7 @@ pub struct Document {
     /// all fonts loaded as the rusttype format
     rt_fonts: Vec<RtFont<'static>>,
     /// fontconfig for finding the font paths
-    font_config: fontconfig::Fontconfig,
+    font_config: fontdb::Database,
 
     /// the printpdf document
     inner_doc: printpdf::PdfDocumentReference,
@@ -102,13 +102,16 @@ impl Document {
     ) -> Result<Self> {
         let size = size.to_mm(dpi);
         let pt_size = (size.0.into(), size.1.into());
+        let mut font_config = fontdb::Database::new();
+        font_config.load_system_fonts();
+
         Ok(Self {
             size,
             drawing_area: PdfRect::from(drawing_area, pt_size),
             font_map: Default::default(),
             pdf_fonts: vec![],
             rt_fonts: vec![],
-            font_config: fontconfig::Fontconfig::new().ok_or(PdfError::NoFontConfig)?,
+            font_config,
             inner_doc: printpdf::PdfDocument::empty(name),
             dpi,
         })
@@ -187,29 +190,41 @@ impl Document {
 
     /// load a font if it's not already loaded
     fn maybe_load_font(&mut self, name: &str) -> Result<()> {
+        let font_not_found = || PdfError::FontNotFound(String::from(name));
+        let font_not_loaded = || PdfError::FontNotLoaded(String::from(name));
         // it is already loaded
         if self.font_map.contains_key(name) {
             return Ok(());
         }
 
-        // find the font path
-        let path = self
-            .font_config
-            .find(name, None)
-            .ok_or_else(|| PdfError::FontNotFound(String::from(name)))?
-            .path;
+        use fontdb::{Query, Source};
+
+        let query = Query {
+            families: &[fontdb::Family::Name(name)],
+            weight: fontdb::Weight::NORMAL,
+            stretch: fontdb::Stretch::Normal,
+            style: fontdb::Style::Normal,
+        };
+
+        // get the font data
+        let data = {
+            let id = self.font_config.query(&query).ok_or_else(font_not_found)?;
+
+            self.font_config
+                .face_source(id)
+                .map(|d| match d.0.as_ref() {
+                    Source::File(p) => Some(std::fs::read(p).ok()?),
+                    _ => None,
+                })
+                .flatten()
+                .ok_or_else(font_not_found)?
+        };
 
         // read the font with printpdf and rusttype
-        let (pdf_font, rt_font) = std::fs::read(&path)
-            .ok()
-            .and_then(|data| {
-                Some((
-                    self.inner_doc.add_external_font(&data[..]).ok()?,
-                    rusttype::Font::try_from_vec(data)?,
-                ))
-            })
-            // give the path to the font if it couldn't be loaded
-            .ok_or_else(|| PdfError::FontNotLoaded(path.to_string_lossy().into()))?;
+        let (pdf_font, rt_font) = (
+            self.inner_doc.add_external_font(&data[..])?,
+            rusttype::Font::try_from_vec(data).ok_or_else(font_not_loaded)?,
+        );
 
         // add the fonts to the map and lists
         self.rt_fonts.push(RtFont::from_rt(rt_font));
