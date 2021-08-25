@@ -47,7 +47,8 @@ impl From<StyleJson> for super::PresentStyle {
             colors: json
                 .colors
                 .iter()
-                .map(|hex| hex_string_to_color(hex))
+                // skip the # at the beginning
+                .map(|hex| hex_string_to_color(&hex[1..]))
                 .collect(),
         }
     }
