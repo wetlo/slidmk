@@ -19,8 +19,14 @@ where
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
+        // how many whitespaces where skipped
+        let mut skipped;
+
         // skip comments
         loop {
+            // skip the whitespace
+            skipped = self.count_while(is_whitepace);
+
             if self.source.peek() == Some(&';') {
                 self.collect_until(&['\n'], None, false);
                 self.source.next(); // consume the trailing \n
@@ -28,9 +34,6 @@ where
                 break;
             }
         }
-
-        // skip whitespace
-        let skipped = self.count_while(is_whitepace);
 
         let token = match self.source.next()? {
             // \n shouldn't be escaped
