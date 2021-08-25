@@ -60,10 +60,6 @@ pub struct ConfigBuilder {
 }
 
 impl ConfigBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn with_style(mut self, path: PathBuf) -> Self {
         self.style = Some(path);
         self
@@ -161,20 +157,6 @@ impl<'a> Config<'a> {
             .get(idx)
             .ok_or(DrawError::NoColor(idx))
             .map(|c| *c)
-    }
-}
-
-impl<'a> Default for Config<'a> {
-    fn default() -> Self {
-        Self {
-            doc_name: "default",
-            style: PresentStyle::default(),
-            margin: Rectangle {
-                orig: Point { x: 0.05, y: 0.05 },
-                size: Point { x: 0.9, y: 0.9 },
-            },
-            slide_styles: default_slide_templates(),
-        }
     }
 }
 
