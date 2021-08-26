@@ -1,7 +1,6 @@
-use std::{fs::File, io::BufReader, path::Path, process};
-
-use crate::util::buff_container::BuffContainer;
 use crate::util::IterExt;
+use std::{fs::File, io::BufReader, io::Read, path::Path, process};
+use tokens::Token;
 
 mod iterexts;
 mod lexer;
@@ -14,7 +13,7 @@ use iterexts::SlideExt;
 pub use slide::*;
 
 pub fn parse_file<P: AsRef<Path>>(path: P) -> impl Iterator<Item = Slide> {
-    let reader = BufReader::new(match File::open(path) {
+    let mut reader = BufReader::new(match File::open(path) {
         Ok(i) => i,
         Err(e) => {
             eprintln!("Couldn't open file due to: {}", e);
@@ -22,24 +21,25 @@ pub fn parse_file<P: AsRef<Path>>(path: P) -> impl Iterator<Item = Slide> {
         }
     });
 
-    // used to read every single char of the file
-    let chars = BuffContainer::new(reader).map(|c| match c {
-        Ok(c) => c,
+    let mut source = String::new();
+    reader.read_to_string(&mut source).unwrap();
+
+    lexer::Lexer {
+        source: &source,
+        no_captures: [],
+        captures: [],
+        comment: todo!(),
+        whitespace: todo!(),
+        invalid: Token::Illegal,
+    }
+    .leave_one(tokens::Token::Linefeed)
+    .slides()
+    .map(|s| match s {
+        Ok(s) => s,
         Err(e) => {
-            eprintln!("Couldn't read another character due to: {}", e);
+            eprintln!("{}", e);
             process::exit(1);
         }
-    });
-
-    lexer::Lexer::new(chars)
-        .leave_one(tokens::Token::Linefeed)
-        .slides()
-        .map(|s| match s {
-            Ok(s) => s,
-            Err(e) => {
-                eprintln!("{}", e);
-                process::exit(1);
-            }
-        })
+    })
     //.inspect(|token| println!("{:?}", token))
 }

@@ -1,185 +1,76 @@
-use super::tokens::Token;
-use crate::util::{CreateAdvancer, IterExt, PeekN};
+use regex::Regex;
 use std::iter::Iterator;
+
+type TokenCreator<T> = dyn Fn(usize, regex::Captures) -> T;
 
 /// iterator that iterates over all the tokens
 /// from a given char-iterator
-pub struct Lexer<I>
-where
-    I: Iterator<Item = char>,
-{
-    sqr_bracks: i8,
-    source: PeekN<I>,
+pub struct Lexer<'a, 's, T, const N: usize, const C: usize> {
+    pub no_captures: [(Regex, T); N],
+    pub captures: [(Regex, &'a TokenCreator<T>); C],
+    pub comment: Regex,
+    pub whitespace: Regex,
+    pub invalid: T,
+    pub source: &'s str,
 }
 
-impl<I> Iterator for Lexer<I>
-where
-    I: Iterator<Item = char>,
-{
-    type Item = Token;
+impl<'a, 's, T: Clone, const N: usize, const C: usize> Iterator for Lexer<'a, 's, T, N, C> {
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // how many whitespaces where skipped
-        let mut skipped;
+        // nothing more to tokenize
+        if self.source.is_empty() {
+            return None;
+        }
 
-        // skip comments
+        // skip the comments
         loop {
-            // skip the whitespace
-            skipped = self.count_while(is_whitepace);
-
-            if self.source.peek() == Some(&';') {
-                self.collect_until(&['\n'], None, false);
-                self.source.next(); // consume the trailing \n
-            } else {
-                break;
+            match self.comment.find(self.source) {
+                Some(m) if m.start() == 0 => self.update_pos(m.end()),
+                _ => break,
             }
         }
 
-        let token = match self.source.next()? {
-            // \n shouldn't be escaped
-            '\n' => Token::Linefeed,
-
-            '\\' => self.get_text(String::new(), true),
-
-            '[' => {
-                self.update_square_brackets(1);
-                Token::SqrBracketLeft
-            }
-            ']' => {
-                self.update_square_brackets(-1);
-                Token::SqrBracketRight
-            }
-
-            // a list item prefix, skipped denotes the ident
-            '*' | '-' if self.is_next_whitespace() => Token::ListPre(skipped),
-
-            // identifier (---IDENTIFIER)
-            '-' if self.look_for('-', 3) => {
-                // skip the ---
-                let _ = self.source.by_ref().skip(3);
-                self.count_while(is_whitepace); // skip white space
-
-                Token::Identifier(self.get_identifier())
-            }
-
-            // "some/path/"
-            '"' => self.get_path(),
-            // just some text
-            c => self.get_text(String::from(c), false),
+        // skip whitespace
+        let indent = match self.whitespace.find(self.source) {
+            Some(m) if m.start() == 0 => m.end(),
+            _ => 0,
         };
+        self.update_pos(indent);
 
-        Some(token)
-    }
-}
-
-impl<I> Lexer<I>
-where
-    I: Iterator<Item = char>,
-{
-    /// creates the TokenIterator with an
-    /// iterator over the chars of the source (\n should be included)
-    pub fn new(chars: I) -> Self {
-        Self {
-            sqr_bracks: 0,
-            source: chars.peekable_n(),
-        }
-    }
-
-    /// collects all chars until a certain char appears
-    /// the collected chars will be inserted into the collector if
-    /// it is Some and otherwise are ignored
-    /// the enum type of the return value is the same as the argument collector
-    fn collect_until(
-        &mut self,
-        ends: &[char],
-        mut collector: Option<String>,
-        mut escaped: bool,
-    ) -> Option<String> {
-        loop {
-            match self.source.next_if(|c| !ends.contains(c) || escaped) {
-                None => return collector,
-                Some('\\') => escaped = true,
-                Some(c) => {
-                    escaped = false;
-                    if let Some(s) = collector.as_mut() {
-                        s.push(c)
-                    }
+        // look for a simple token like a linefeed ('\n')
+        for (re, tok) in self.no_captures.iter() {
+            match re.find(self.source) {
+                Some(m) if m.start() == 0 => {
+                    let tok = tok.clone();
+                    self.update_pos(m.end());
+                    return Some(tok);
                 }
-            }
-        }
-    }
-
-    fn update_square_brackets(&mut self, sign: i8) {
-        self.sqr_bracks += sign;
-
-        if self.sqr_bracks < 0 {
-            self.sqr_bracks = 0;
-        }
-    }
-
-    /// counts all the occurrences
-    fn count_while<P>(&mut self, mut predicate: P) -> u8
-    where
-        P: FnMut(char) -> bool,
-    {
-        self.source.advance_while(|&c| predicate(c)).count() as u8
-    }
-
-    fn look_for(&mut self, searched: char, n: usize) -> bool {
-        for i in 0..n {
-            if Some(&searched) != self.source.peek_nth(i) {
-                return false;
+                _ => (),
             }
         }
 
-        true
-    }
+        for (re, tok_fn) in self.captures.iter() {
+            if let Some(c) = re.captures(self.source) {
+                let full = c.get(0).unwrap();
 
-    fn is_next_whitespace(&mut self) -> bool {
-        match self.source.peek() {
-            Some(c) => c.is_whitespace(),
-            _ => false,
+                if full.start() != 0 {
+                    continue;
+                }
+
+                let tok = tok_fn(indent, c);
+                self.update_pos(full.end());
+                return Some(tok);
+            }
         }
-    }
 
-    fn get_identifier(&mut self) -> String {
-        self.source
-            .advance_while(|&c| c.is_alphanumeric() || c == '_')
-            .collect()
-        // TODO: remove advance_while
-    }
-
-    fn get_path(&mut self) -> Token {
-        let path = self
-            .collect_until(&['"'], Some(String::new()), false)
-            .unwrap();
-
-        // ignore the "
-        if self.source.next().is_none() {
-            // a path needs to end with an "
-            Token::Illegal
-        } else {
-            Token::Path(path.into())
-        }
-    }
-
-    fn get_text(&mut self, collector: String, first_escaped: bool) -> Token {
-        let delims: &[char] = if self.sqr_bracks > 0 {
-            &['\n', ';', ']']
-        } else {
-            &['\n', ';']
-        };
-
-        Token::Text(
-            self.collect_until(delims, Some(collector), first_escaped)
-                .unwrap(),
-        )
+        self.source = "";
+        Some(self.invalid.clone())
     }
 }
 
-fn is_whitepace(c: char) -> bool {
-    match c {
-        '\n' => false,
-        _ => c.is_whitespace(),
+impl<'a, 's, T, const N: usize, const C: usize> Lexer<'a, 's, T, N, C> {
+    fn update_pos(&mut self, pos: usize) {
+        self.source = &self.source[pos..];
     }
 }
