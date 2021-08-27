@@ -23,13 +23,14 @@ pub fn parse_file<P: AsRef<Path>>(path: P) -> impl Iterator<Item = Slide> {
 
     let mut source = String::new();
     reader.read_to_string(&mut source).unwrap();
+    let source = source.into_boxed_str();
 
     lexer::Lexer {
         source: &source,
-        no_captures: [],
-        captures: [],
-        comment: todo!(),
-        whitespace: todo!(),
+        no_captures: tokens::NON_CAPTURES.as_ref(),
+        captures: tokens::CAPTURES.as_ref(),
+        comment: &tokens::COMMENT,
+        whitespace: &tokens::WHITESPACE,
         invalid: Token::Illegal,
     }
     .leave_one(tokens::Token::Linefeed)

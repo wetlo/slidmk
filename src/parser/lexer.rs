@@ -1,20 +1,20 @@
 use regex::Regex;
 use std::iter::Iterator;
 
-type TokenCreator<T> = dyn Fn(usize, regex::Captures) -> T;
+pub type TokenCreator<T> = dyn Fn(usize, regex::Captures) -> T + Sync;
 
 /// iterator that iterates over all the tokens
 /// from a given char-iterator
-pub struct Lexer<'a, 's, T, const N: usize, const C: usize> {
-    pub no_captures: [(Regex, T); N],
-    pub captures: [(Regex, &'a TokenCreator<T>); C],
-    pub comment: Regex,
-    pub whitespace: Regex,
+pub struct Lexer<'a, 's, T> {
+    pub no_captures: &'a [(Regex, T)],
+    pub captures: &'a [(Regex, &'a TokenCreator<T>)],
+    pub comment: &'a Regex,
+    pub whitespace: &'a Regex,
     pub invalid: T,
     pub source: &'s str,
 }
 
-impl<'a, 's, T: Clone, const N: usize, const C: usize> Iterator for Lexer<'a, 's, T, N, C> {
+impl<'a, 's, T: Clone> Iterator for Lexer<'a, 's, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -69,7 +69,7 @@ impl<'a, 's, T: Clone, const N: usize, const C: usize> Iterator for Lexer<'a, 's
     }
 }
 
-impl<'a, 's, T, const N: usize, const C: usize> Lexer<'a, 's, T, N, C> {
+impl<'a, 's, T> Lexer<'a, 's, T> {
     fn update_pos(&mut self, pos: usize) {
         self.source = &self.source[pos..];
     }
