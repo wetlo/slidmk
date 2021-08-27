@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 # parsing
 utf8-chars = "1.0.2"
+lazy_static = "1.4.0"
 regex = "1.5.4"
 
 # pdf generation

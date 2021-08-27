@@ -802,6 +802,7 @@ dependencies = [
  "directories",
  "fontconfig",
  "fontdb",
+ "lazy_static",
  "printpdf",
  "regex",
  "rusttype 0.9.2",
