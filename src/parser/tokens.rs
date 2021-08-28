@@ -19,25 +19,25 @@ fn regex(re: &str) -> Regex {
 }
 
 lazy_static::lazy_static! {
-    pub static ref COMMENT: Regex = regex(r"\s*;.*");
-    pub static ref WHITESPACE: Regex = regex(r"\s*");
+    pub static ref COMMENT: Regex = regex(r";.*\n");
+    pub static ref WHITESPACE: Regex = regex(r"[^\S\n]*");
 
     pub static ref NON_CAPTURES: [(Regex, Token); 3] = [
-        (regex("["), Token::SqrBracketLeft),
-        (regex("]"), Token::SqrBracketRight),
+        (regex(r"\["), Token::SqrBracketLeft),
+        (regex(r"\]"), Token::SqrBracketRight),
         (regex("\n"), Token::Linefeed),
     ];
 
     pub static ref CAPTURES: [(Regex, &'static lexer::TokenCreator<Token>); 4] = [
-        (regex(".*"), &text),
-        (regex(r"---\s*(![\s\d]+)"), &identifier),
+        (regex(r"---\s*([^\s\d]+)"), &identifier),
         (regex(r"-|\*"), &list_item),
         (regex(r#""(.*)""#), &path),
+        (regex(r"(.*)\n?"), &text),
     ];
 }
 
 fn text(_: usize, capture: Captures) -> Token {
-    Token::Text(capture.get(0).unwrap().as_str().to_string())
+    Token::Text(capture.get(1).unwrap().as_str().to_string())
 }
 
 fn path(_: usize, capture: Captures) -> Token {

@@ -23,20 +23,22 @@ impl<'a, 's, T: Clone> Iterator for Lexer<'a, 's, T> {
             return None;
         }
 
+        let mut indent;
+
         // skip the comments
         loop {
+            // skip whitespace
+            indent = match self.whitespace.find(self.source) {
+                Some(m) if m.start() == 0 => m.end(),
+                _ => 0,
+            };
+            self.update_pos(indent);
+
             match self.comment.find(self.source) {
                 Some(m) if m.start() == 0 => self.update_pos(m.end()),
                 _ => break,
             }
         }
-
-        // skip whitespace
-        let indent = match self.whitespace.find(self.source) {
-            Some(m) if m.start() == 0 => m.end(),
-            _ => 0,
-        };
-        self.update_pos(indent);
 
         // look for a simple token like a linefeed ('\n')
         for (re, tok) in self.no_captures.iter() {
