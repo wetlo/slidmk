@@ -43,7 +43,8 @@ fn main() -> Result<(), DrawError> {
 
     let mut config = config.build();
 
-    let slides = parser::parse_file(args.present_file);
+    let source = std::fs::read_to_string(args.present_file).unwrap();
+    let slides = parser::parse(&source);
     let mut pdf = PdfMaker::with_config(&config).expect("couldn't get the pdfmaker");
 
     for slide in slides {
