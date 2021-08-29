@@ -20,7 +20,17 @@ pub fn parse(source: &'_ str) -> impl Iterator<Item = Slide> + '_ {
         whitespace: &tokens::WHITESPACE,
         invalid: Token::Illegal,
     }
-    .leave_one(tokens::Token::Linefeed)
+    .filter({
+        //TODO
+        let mut next = false;
+        let mut last = false;
+        move |t| {
+            last = next;
+            next = t == &Token::Linefeed;
+            !last || !next
+        }
+    })
+    //.inspect(|t| eprintln!("{:?}", t))
     .slides()
     .map(|s| match s {
         Ok(s) => s,
@@ -29,5 +39,5 @@ pub fn parse(source: &'_ str) -> impl Iterator<Item = Slide> + '_ {
             std::process::exit(1);
         }
     })
-    //.inspect(|token| println!("{:?}", token))
+    //.inspect(|s| println!("slide: {:?}", s))
 }
