@@ -1,4 +1,3 @@
-use crate::util::IterExt;
 use tokens::Token;
 
 mod iterexts;
@@ -13,7 +12,7 @@ pub use slide::*;
 
 pub fn parse(source: &'_ str) -> impl Iterator<Item = Slide> + '_ {
     lexer::Lexer {
-        source: &source,
+        source,
         no_captures: tokens::NON_CAPTURES.as_ref(),
         captures: tokens::CAPTURES.as_ref(),
         comment: &tokens::COMMENT,
@@ -21,13 +20,12 @@ pub fn parse(source: &'_ str) -> impl Iterator<Item = Slide> + '_ {
         invalid: Token::Illegal,
     }
     .filter({
-        //TODO
         let mut next = false;
         let mut last = false;
         move |t| {
             last = next;
             next = t == &Token::Linefeed;
-            !last || !next
+            !(last && next)
         }
     })
     //.inspect(|t| eprintln!("{:?}", t))

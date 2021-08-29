@@ -26,17 +26,6 @@ where
 
         self.peeked.get(self.peeked.len() - nth - 1)
     }
-
-    pub fn next_if<P>(&mut self, pred: P) -> Option<I::Item>
-    where
-        P: FnOnce(&I::Item) -> bool,
-    {
-        if pred(self.peek()?) {
-            self.next()
-        } else {
-            None
-        }
-    }
 }
 
 impl<I: Iterator> Iterator for PeekN<I> {

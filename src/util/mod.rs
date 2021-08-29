@@ -1,5 +1,4 @@
 mod advancer;
-pub mod buff_container;
 mod iterext;
 pub mod macros;
 pub mod pdf;
