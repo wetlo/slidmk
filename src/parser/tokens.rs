@@ -28,7 +28,7 @@ lazy_static::lazy_static! {
         (regex("\n"), Token::Linefeed),
     ];
 
-    pub static ref CAPTURES: [(Regex, &'static (dyn Fn(usize, Captures<'_>) -> Token<'_> + Sync)); 4] = [
+    pub static ref CAPTURES: [(Regex, &'static lexer::TokenCreator); 4] = [
         (regex(r"---\s*([^\s\d]+)"), &identifier),
         (regex(r"-|\*"), &list_item),
         (regex(r#""(.*)""#), &path),

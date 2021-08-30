@@ -1,21 +1,22 @@
+use super::Token;
 use regex::Regex;
 use std::iter::Iterator;
 
-pub type TokenCreator<T> = dyn for<'s> Fn(usize, regex::Captures<'s>) -> T + Sync;
+pub type TokenCreator = dyn for<'s> Fn(usize, regex::Captures<'s>) -> Token<'s> + Sync;
 
 /// iterator that iterates over all the tokens
 /// from a given char-iterator
-pub struct Lexer<'a, 's, T> {
-    pub no_captures: &'a [(Regex, T)],
-    pub captures: &'a [(Regex, &'a TokenCreator<T>)],
+pub struct Lexer<'a, 's> {
+    pub no_captures: &'a [(Regex, Token<'s>)],
+    pub captures: &'a [(Regex, &'a TokenCreator)],
     pub comment: &'a Regex,
     pub whitespace: &'a Regex,
-    pub invalid: T,
+    pub invalid: Token<'s>,
     pub source: &'s str,
 }
 
-impl<'a, 's, T: Clone> Iterator for Lexer<'a, 's, T> {
-    type Item = T;
+impl<'a, 's> Iterator for Lexer<'a, 's> {
+    type Item = Token<'s>;
 
     fn next(&mut self) -> Option<Self::Item> {
         // nothing more to tokenize
@@ -71,7 +72,7 @@ impl<'a, 's, T: Clone> Iterator for Lexer<'a, 's, T> {
     }
 }
 
-impl<'a, 's, T> Lexer<'a, 's, T> {
+impl<'a, 's> Lexer<'a, 's> {
     fn update_pos(&mut self, pos: usize) {
         self.source = &self.source[pos..];
     }
