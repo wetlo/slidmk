@@ -98,7 +98,7 @@ where
     fn parse(&self, input: &[T], offset: usize) -> ParseResult<Self::Output> {
         self.this
             .parse(input, offset)
-            .or_else(|e| self.or_that.parse(input, offset))
+            .or_else(|_| self.or_that.parse(input, offset))
     }
 }
 
@@ -114,7 +114,7 @@ where
 
     fn parse(&self, input: &[T], mut offset: usize) -> ParseResult<Self::Output> {
         let vec: Vec<_> = std::iter::repeat(std::marker::PhantomData)
-            .map_while(|_| {
+            .map_while(|_: std::marker::PhantomData<()>| {
                 let result = self.parser.parse(input, offset).ok()?;
                 offset = result.0;
                 Some(result.1)
