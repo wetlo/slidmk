@@ -1,7 +1,7 @@
 use super::{
     combinators,
     combinators::Parser,
-    //parse_error::ParseError,
+    parse_error::ParseError,
     slide::{Content, Slide},
     tokens::Token,
 };
@@ -11,9 +11,16 @@ use std::path::Path;
 macro_rules! token_fn {
     ($name:ident, $ret_ty:ty, $pat:pat => $ret:expr) => {
         fn $name<'s>(input: &[Token<'s>], offset: usize) -> combinators::ParseResult<$ret_ty> {
-            match input.get(offset).ok_or(())? {
-                $pat => combinators::p_ok(offset + 1, $ret),
-                _ => Err(()),
+            match input.get(offset) {
+                Some($pat) => combinators::p_ok(offset + 1, $ret),
+                Some(t) => Err(ParseError {
+                    actual: format!("{:?}", t),
+                    expected: stringify!($pat),
+                }),
+                None => Err(ParseError {
+                    actual: String::from("EOF"),
+                    expected: stringify!($pat),
+                }),
             }
         }
     };
@@ -39,7 +46,7 @@ impl<'s> Slides<'s> {
 }
 
 impl<'s> Iterator for Slides<'s> {
-    type Item = Result<Slide, combinators::ParseError>;
+    type Item = Result<Slide, ParseError<'static>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.offset >= self.tokens.len() {
@@ -67,6 +74,7 @@ impl<'s> Iterator for Slides<'s> {
             .suffix(line_feed);
 
         let result = identifier
+            .suffix(line_feed)
             .and(content.many())
             .parse(&self.tokens, self.offset);
 

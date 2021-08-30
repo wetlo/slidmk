@@ -1,5 +1,5 @@
-pub type ParseError = ();
-pub type ParseResult<T> = Result<(usize, T), ParseError>;
+use super::parse_error::ParseError;
+pub type ParseResult<T> = Result<(usize, T), ParseError<'static>>;
 
 pub fn p_ok<T>(offset: usize, result: T) -> ParseResult<T> {
     Ok((offset, result))
@@ -175,17 +175,23 @@ where
     type Output = Vec<P::Output>;
 
     fn parse(&self, input: &[T], mut offset: usize) -> ParseResult<Self::Output> {
+        let mut error = None;
         let vec: Vec<_> = std::iter::repeat(std::marker::PhantomData)
             .map_while(|_: std::marker::PhantomData<()>| {
-                let result = self.parser.parse(input, offset).ok()?;
+                let result = self
+                    .parser
+                    .parse(input, offset)
+                    .map_err(|e| error = Some(e))
+                    .ok()?;
+
                 offset = result.0;
                 Some(result.1)
             })
             .collect();
 
         if vec.is_empty() {
-            // TODO: make nice errors
-            Err(())
+            // should be safe
+            Err(error.unwrap())
         } else {
             p_ok(offset, vec)
         }
