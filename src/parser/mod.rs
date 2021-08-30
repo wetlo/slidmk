@@ -1,5 +1,6 @@
 use tokens::Token;
 
+mod combinators;
 mod iterexts;
 mod lexer;
 mod parse_error;

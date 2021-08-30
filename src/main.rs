@@ -1,3 +1,4 @@
+#![feature(iter_map_while)]
 use std::fs::File;
 use structopt::StructOpt;
 
