@@ -34,7 +34,7 @@ pub fn parse<'s>(source: &'s str) -> impl Iterator<Item = Slide> + 's {
     .map(|s| match s {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("{}", e);
+            eprintln!("{:?}", e);
             std::process::exit(1);
         }
     })

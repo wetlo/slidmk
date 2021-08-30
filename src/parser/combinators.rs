@@ -1,10 +1,11 @@
-pub type ParseResult<T> = Result<(usize, T), ()>;
+pub type ParseError = ();
+pub type ParseResult<T> = Result<(usize, T), ParseError>;
 
-fn p_ok<T>(offset: usize, result: T) -> ParseResult<T> {
+pub fn p_ok<T>(offset: usize, result: T) -> ParseResult<T> {
     Ok((offset, result))
 }
 
-trait Parser<T>: Sized {
+pub trait Parser<T>: Sized {
     type Output;
     fn parse(&self, input: &[T], offset: usize) -> ParseResult<Self::Output>;
 
@@ -31,6 +32,10 @@ trait Parser<T>: Sized {
             or_that: other,
         }
     }
+
+    fn many(self) -> Many<Self> {
+        Many { parser: self }
+    }
 }
 
 impl<T, O, F> Parser<T> for F
@@ -44,6 +49,7 @@ where
     }
 }
 
+#[derive(Clone)]
 pub struct And<P, Q> {
     first: P,
     sec: Q,
@@ -64,6 +70,7 @@ where
     }
 }
 
+#[derive(Clone)]
 pub struct After<P, F> {
     parser: P,
     apply: F,
@@ -83,6 +90,7 @@ where
     }
 }
 
+#[derive(Clone)]
 pub struct Or<P, Q> {
     this: P,
     or_that: Q,
@@ -102,6 +110,7 @@ where
     }
 }
 
+#[derive(Clone)]
 pub struct Many<P> {
     parser: P,
 }

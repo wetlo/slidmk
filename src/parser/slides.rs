@@ -1,12 +1,14 @@
 use super::{
-    parse_error::ParseError,
+    combinators,
+    combinators::Parser,
+    //parse_error::ParseError,
     slide::{Content, Slide},
     tokens::Token,
 };
 
 use std::path::{Path, PathBuf};
 
-type SResult<T> = Result<T, ParseError<'static>>;
+//type SResult<T> = Result<T, ParseError<'static>>;
 
 macro_rules! sokay {
     ($inner:expr) => {
@@ -14,7 +16,7 @@ macro_rules! sokay {
     };
 }
 
-macro_rules! get_token {
+/*macro_rules! get_token {
     ($source:expr, $pat:pat, $ret:expr) => {
         match $source {
             Some($pat) => Ok($ret),
@@ -29,9 +31,29 @@ macro_rules! get_token {
             }),
         };
     };
+}*/
+
+macro_rules! token_fn {
+    ($name:ident, $ret_ty:ty, $pat:pat => $ret:expr) => {
+        fn $name<'s>(input: &[Token<'s>], offset: usize) -> combinators::ParseResult<$ret_ty> {
+            match input.get(offset).ok_or(())? {
+                $pat => combinators::p_ok(offset + 1, $ret),
+                _ => Err(()),
+            }
+        }
+    };
 }
 
-macro_rules! ret_err {
+token_fn!(identifier, &'s str, Token::Identifier(t) => t);
+token_fn!(text, &'s str, Token::Text(t) => t);
+token_fn!(path, &'s Path, Token::Path(p) => p);
+token_fn!(list_pre, u8, Token::ListPre(i) => *i);
+token_fn!(right_bracket, (), Token::SqrBracketRight => ());
+token_fn!(left_bracket, (), Token::SqrBracketLeft => ());
+token_fn!(line_feed, (), Token::Linefeed => ());
+//token_fn!(identifier, &'s str, Token::Identifier(t) => t);
+
+/*macro_rules! ret_err {
     ($result:expr) => {
         match $result {
             Ok(i) => i,
@@ -173,5 +195,35 @@ where
             kind: kind.into(),
             contents
         })
+    }
+}*/
+
+pub struct Slides<'s> {
+    tokens: Vec<Token<'s>>,
+    offset: usize,
+}
+
+impl<'s> Slides<'s> {
+    pub fn new(tokens: Vec<Token<'s>>) -> Self {
+        Self { tokens, offset: 0 }
+    }
+}
+
+impl<'s> Iterator for Slides<'s> {
+    type Item = Result<Slide, combinators::ParseError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let text = text.many().after(|v| v.into_iter().collect::<String>());
+        let list = list_pre
+            .and(text.clone())
+            .many()
+            .after(|v| Content::List(v));
+
+        let _content = path
+            .after(|p| Content::Config(p.into()))
+            .or(text.clone().after(|s| Content::Text(s)))
+            .or(list);
+
+        todo!()
     }
 }
