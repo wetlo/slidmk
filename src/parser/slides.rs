@@ -4,7 +4,7 @@ use super::{
     tokens::Token,
 };
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 type SResult<T> = Result<T, ParseError<'static>>;
 
@@ -40,17 +40,17 @@ macro_rules! ret_err {
     };
 }
 
-pub struct Slides<I>
+pub struct Slides<'s, I>
 where
-    I: Iterator<Item = Token>,
+    I: Iterator<Item = Token<'s>>,
 {
     tokens: I,
-    next_token: Option<Token>,
+    next_token: Option<Token<'s>>,
 }
 
-impl<I> Slides<I>
+impl<'s, I> Slides<'s, I>
 where
-    I: Iterator<Item = Token>,
+    I: Iterator<Item = Token<'s>>,
 {
     pub fn new(tokens: I) -> Self {
         Self {
@@ -59,7 +59,7 @@ where
         }
     }
 
-    fn buf_next(&mut self) -> Option<Token> {
+    fn buf_next(&mut self) -> Option<Token<'s>> {
         self.next_token.take().or_else(|| self.tokens.next())
     }
 
@@ -67,9 +67,8 @@ where
         loop {
             let next = self.tokens.next();
             if let Some(Token::Text(s)) = next {
-                // TODO: maybe make this more efficent (memory allocation)
                 coll.push(' '); // add a space
-                coll.push_str(&s);
+                coll.push_str(s);
             } else {
                 self.next_token = next;
                 break;
@@ -84,15 +83,15 @@ where
         let _ = get_token!(self.buf_next(), Token::SqrBracketRight, ())?;
         let path = get_token!(self.buf_next(), Token::Path(p), p)?;
 
-        Ok((desc, path))
+        Ok((desc.into(), path.into()))
     }
 }
 
-struct ListItems<'a, I: Iterator<Item = Token>>(&'a mut Slides<I>, Option<u8>);
+struct ListItems<'a, 's, I: Iterator<Item = Token<'s>>>(&'a mut Slides<'s, I>, Option<u8>);
 
-impl<'a, I> Iterator for ListItems<'a, I>
+impl<'a, 's, I> Iterator for ListItems<'a, 's, I>
 where
-    I: Iterator<Item = Token>,
+    I: Iterator<Item = Token<'s>>,
 {
     type Item = SResult<(u8, String)>;
 
@@ -106,18 +105,18 @@ where
         let text = ret_err!(get_token!(
             self.0.buf_next(),
             Token::Text(s),
-            self.0.concat_text(s)
+            self.0.concat_text(s.into())
         ));
 
         sokay!((ident, text))
     }
 }
 
-struct ContentIter<'a, I: Iterator<Item = Token>>(&'a mut Slides<I>);
+struct ContentIter<'a, 's, I: Iterator<Item = Token<'s>>>(&'a mut Slides<'s, I>);
 
-impl<'a, I> Iterator for ContentIter<'a, I>
+impl<'a, 's, I> Iterator for ContentIter<'a, 's, I>
 where
-    I: Iterator<Item = Token>,
+    I: Iterator<Item = Token<'s>>,
 {
     type Item = SResult<Content>;
 
@@ -125,8 +124,8 @@ where
         use Token::*;
 
         match self.0.buf_next()? {
-            Text(s) => sokay!(Content::Text(self.0.concat_text(s))),
-            Path(p) => sokay!(Content::Config(p)),
+            Text(s) => sokay!(Content::Text(self.0.concat_text(s.into()))),
+            Path(p) => sokay!(Content::Config(p.into())),
             Linefeed => self.next(), // TODO: maybe don't use recursion
             ListPre(i) => sokay!(Content::List(
                 ret_err!(ListItems(self.0, Some(i)).collect())
@@ -144,18 +143,18 @@ where
     }
 }
 
-impl<'a, I> From<&'a mut Slides<I>> for ContentIter<'a, I>
+impl<'a, 's, I> From<&'a mut Slides<'s, I>> for ContentIter<'a, 's, I>
 where
-    I: Iterator<Item = Token>,
+    I: Iterator<Item = Token<'s>>,
 {
-    fn from(slides: &'a mut Slides<I>) -> Self {
+    fn from(slides: &'a mut Slides<'s, I>) -> Self {
         Self(slides)
     }
 }
 
-impl<I> Iterator for Slides<I>
+impl<'s, I> Iterator for Slides<'s, I>
 where
-    I: Iterator<Item = Token>,
+    I: Iterator<Item = Token<'s>>,
 {
     type Item = SResult<Slide>;
 
@@ -170,6 +169,9 @@ where
         // TODO: change to Result<Content, ParseError>
         let contents = ret_err!(ContentIter::from(self).collect());
 
-        sokay!(Slide { kind, contents })
+        sokay!(Slide {
+            kind: kind.into(),
+            contents
+        })
     }
 }

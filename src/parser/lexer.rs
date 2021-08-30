@@ -1,7 +1,7 @@
 use regex::Regex;
 use std::iter::Iterator;
 
-pub type TokenCreator<T> = dyn Fn(usize, regex::Captures) -> T + Sync;
+pub type TokenCreator<T> = dyn for<'s> Fn(usize, regex::Captures<'s>) -> T + Sync;
 
 /// iterator that iterates over all the tokens
 /// from a given char-iterator

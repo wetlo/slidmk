@@ -1,16 +1,16 @@
 use super::lexer;
 use regex::{Captures, Regex};
-use std::path::PathBuf;
+use std::path::Path;
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum Token {
+pub enum Token<'a> {
     Illegal,
     Linefeed,
     SqrBracketLeft,
     SqrBracketRight,
-    Path(PathBuf),
-    Text(String),
-    Identifier(String),
+    Path(&'a Path),
+    Text(&'a str),
+    Identifier(&'a str),
     ListPre(u8),
 }
 
@@ -22,13 +22,13 @@ lazy_static::lazy_static! {
     pub static ref COMMENT: Regex = regex(r";.*\n");
     pub static ref WHITESPACE: Regex = regex(r"[^\S\n]*");
 
-    pub static ref NON_CAPTURES: [(Regex, Token); 3] = [
+    pub static ref NON_CAPTURES: [(Regex, Token<'static>); 3] = [
         (regex(r"\["), Token::SqrBracketLeft),
         (regex(r"\]"), Token::SqrBracketRight),
         (regex("\n"), Token::Linefeed),
     ];
 
-    pub static ref CAPTURES: [(Regex, &'static lexer::TokenCreator<Token>); 4] = [
+    pub static ref CAPTURES: [(Regex, &'static (dyn Fn(usize, Captures<'_>) -> Token<'_> + Sync)); 4] = [
         (regex(r"---\s*([^\s\d]+)"), &identifier),
         (regex(r"-|\*"), &list_item),
         (regex(r#""(.*)""#), &path),
@@ -37,15 +37,15 @@ lazy_static::lazy_static! {
 }
 
 fn text(_: usize, capture: Captures) -> Token {
-    Token::Text(capture.get(1).unwrap().as_str().to_string())
+    Token::Text(capture.get(1).unwrap().as_str())
 }
 
 fn path(_: usize, capture: Captures) -> Token {
-    Token::Path(capture.get(1).unwrap().as_str().into())
+    Token::Path(capture.get(1).unwrap().as_str().as_ref())
 }
 
 fn identifier(_: usize, capture: Captures) -> Token {
-    Token::Identifier(capture.get(1).unwrap().as_str().to_string())
+    Token::Identifier(capture.get(1).unwrap().as_str())
 }
 
 fn list_item(ident: usize, _: Captures) -> Token {
