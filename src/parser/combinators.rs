@@ -9,11 +9,11 @@ pub trait Parser<T>: Sized {
     type Output;
     fn parse(&self, input: &[T], offset: usize) -> ParseResult<Self::Output>;
 
-    fn after<O, F>(self, apply: F) -> After<Self, F>
+    fn process<O, F>(self, apply: F) -> Process<Self, F>
     where
         F: Fn(Self::Output) -> O,
     {
-        After {
+        Process {
             parser: self,
             apply,
         }
@@ -23,6 +23,20 @@ pub trait Parser<T>: Sized {
         And {
             first: self,
             sec: other,
+        }
+    }
+
+    fn suffix<P: Parser<T>>(self, after: P) -> Suffix<Self, P> {
+        Suffix {
+            parser: self,
+            suffix: after,
+        }
+    }
+
+    fn prefix<P: Parser<T>>(self, after: P) -> Prefix<Self, P> {
+        Prefix {
+            parser: self,
+            prefix: after,
         }
     }
 
@@ -70,13 +84,33 @@ where
     }
 }
 
+pub struct Suffix<P, Q> {
+    parser: P,
+    suffix: Q,
+}
+
+impl<P, Q, T> Parser<T> for Suffix<P, Q>
+where
+    P: Parser<T>,
+    Q: Parser<T>,
+{
+    type Output = P::Output;
+
+    fn parse(&self, input: &[T], offset: usize) -> ParseResult<Self::Output> {
+        let (offset, out) = self.parser.parse(input, offset)?;
+        let (offset, _) = self.suffix.parse(input, offset)?;
+
+        p_ok(offset, out)
+    }
+}
+
 #[derive(Clone)]
-pub struct After<P, F> {
+pub struct Process<P, F> {
     parser: P,
     apply: F,
 }
 
-impl<P, F, T, O> Parser<T> for After<P, F>
+impl<P, F, T, O> Parser<T> for Process<P, F>
 where
     P: Parser<T>,
     F: Fn(P::Output) -> O,
@@ -87,6 +121,25 @@ where
         let (offset, output) = self.parser.parse(input, offset)?;
         let output = (self.apply)(output);
         p_ok(offset, output)
+    }
+}
+
+#[derive(Clone)]
+pub struct Prefix<P, Q> {
+    parser: P,
+    prefix: Q,
+}
+
+impl<P, Q, T> Parser<T> for Prefix<P, Q>
+where
+    P: Parser<T>,
+    Q: Parser<T>,
+{
+    type Output = P::Output;
+
+    fn parse(&self, input: &[T], mut offset: usize) -> ParseResult<Self::Output> {
+        offset = self.prefix.parse(input, offset)?.0;
+        self.parser.parse(input, offset)
     }
 }
 
