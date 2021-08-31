@@ -11,7 +11,7 @@ mod tokens;
 use iterexts::SlideExt;
 pub use slide::*;
 
-pub fn parse<'s>(source: &'s str) -> impl Iterator<Item = Slide> + 's {
+pub fn parse(source: &'_ str) -> impl Iterator<Item = Slide> + '_ {
     lexer::Lexer {
         source,
         no_captures: tokens::NON_CAPTURES.as_ref(),

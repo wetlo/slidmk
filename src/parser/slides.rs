@@ -54,10 +54,7 @@ impl<'s> Iterator for Slides<'s> {
         }
 
         let text = text.many().process(|v| v.into_iter().collect::<String>());
-        let list = list_pre
-            .and(text.clone())
-            .many()
-            .process(|v| Content::List(v));
+        let list = list_pre.and(text.clone()).many().process(Content::List);
 
         let image = text
             .clone()
@@ -70,7 +67,7 @@ impl<'s> Iterator for Slides<'s> {
             .process(|p| Content::Config(p.into()))
             .or(image)
             .or(list)
-            .or(text.clone().process(|s| Content::Text(s)))
+            .or(text.clone().process(Content::Text))
             .suffix(line_feed.or(combinators::eof));
 
         let result = identifier
