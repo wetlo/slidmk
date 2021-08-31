@@ -10,6 +10,8 @@ use std::path::Path;
 
 macro_rules! token_fn {
     ($name:ident, $ret_ty:ty, $pat:pat => $ret:expr) => {
+        /// tries to get a token of the pattern $pat, if such a token is
+        /// not found it creates a nice error
         fn $name<'s>(input: &[Token<'s>], offset: usize) -> combinators::ParseResult<$ret_ty> {
             match input.get(offset) {
                 Some($pat) => combinators::p_ok(offset + 1, $ret),
@@ -34,12 +36,14 @@ token_fn!(right_bracket, (), Token::SqrBracketRight => ());
 token_fn!(left_bracket, (), Token::SqrBracketLeft => ());
 token_fn!(line_feed, (), Token::Linefeed => ());
 
+/// an iterator over the lazily parsed slides
 pub struct Slides<'s> {
     tokens: Vec<Token<'s>>,
     offset: usize,
 }
 
 impl<'s> Slides<'s> {
+    /// creates the slide parser iterator with the token contents
     pub fn new(tokens: Vec<Token<'s>>) -> Self {
         Self { tokens, offset: 0 }
     }
@@ -48,6 +52,7 @@ impl<'s> Slides<'s> {
 impl<'s> Iterator for Slides<'s> {
     type Item = Result<Slide, ParseError<'static>>;
 
+    /// parses the next slide if available
     fn next(&mut self) -> Option<Self::Item> {
         if self.offset >= self.tokens.len() {
             return None;

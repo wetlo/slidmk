@@ -5,10 +5,15 @@ pub fn p_ok<T>(offset: usize, result: T) -> ParseResult<T> {
     Ok((offset, result))
 }
 
+/// a parser gets a list inputs and a position to start
+/// and then returns the next position + an arbitrary output on success
+/// or an nice error message on failure
 pub trait Parser<T>: Sized {
     type Output;
+    /// parses the input at the position and returns the result
     fn parse(&self, input: &[T], offset: usize) -> ParseResult<Self::Output>;
 
+    /// change the output of the parser with a function
     fn process<O, F>(self, apply: F) -> Process<Self, F>
     where
         F: Fn(Self::Output) -> O,
@@ -19,6 +24,7 @@ pub trait Parser<T>: Sized {
         }
     }
 
+    /// look at the output of the parser, mostly for debugging
     fn inspect<F: Fn(&Self::Output)>(self, inspector: F) -> Inspect<Self, F> {
         Inspect {
             parser: self,
@@ -26,6 +32,9 @@ pub trait Parser<T>: Sized {
         }
     }
 
+    /// create a parser that parses first this one and
+    /// the second one behind it. The output is a tuple of
+    /// both outputs
     fn and<P: Parser<T>>(self, other: P) -> And<Self, P> {
         And {
             first: self,
@@ -33,6 +42,8 @@ pub trait Parser<T>: Sized {
         }
     }
 
+    /// make sure there is a certain suffix behind the parsed content,
+    /// output remains unchanged
     fn suffix<P: Parser<T>>(self, after: P) -> Suffix<Self, P> {
         Suffix {
             parser: self,
@@ -40,6 +51,8 @@ pub trait Parser<T>: Sized {
         }
     }
 
+    /// make sure there is a certain prefix before the parsed content,
+    /// output remains unchanged
     fn prefix<P: Parser<T>>(self, after: P) -> Prefix<Self, P> {
         Prefix {
             parser: self,
@@ -47,6 +60,8 @@ pub trait Parser<T>: Sized {
         }
     }
 
+    /// creates a new parser where either this or the other needs to parse
+    /// for a valid result. Both parsers need to return the same type
     fn or<P: Parser<T, Output = Self::Output>>(self, other: P) -> Or<Self, P> {
         Or {
             this: self,
@@ -54,6 +69,8 @@ pub trait Parser<T>: Sized {
         }
     }
 
+    /// repeat this parser (greedy)
+    /// returns a Vec of the original Output
     fn many(self) -> Many<Self> {
         Many { parser: self }
     }
@@ -183,11 +200,15 @@ where
 
     fn parse(&self, input: &[T], mut offset: usize) -> ParseResult<Self::Output> {
         let mut error = None;
-        let vec: Vec<_> = std::iter::repeat(std::marker::PhantomData)
+        let vec: Vec<_> =
+            // creates an infinite iterator with nothing
+            std::iter::repeat(std::marker::PhantomData)
+            // map it to every valid parse result
             .map_while(|_: std::marker::PhantomData<()>| {
                 let result = self
                     .parser
                     .parse(input, offset)
+                    // save the error
                     .map_err(|e| error = Some(e))
                     .ok()?;
 
@@ -196,6 +217,7 @@ where
             })
             .collect();
 
+        // couldn't parse anything => return Error
         if vec.is_empty() {
             // should be safe
             Err(error.unwrap())
@@ -225,6 +247,7 @@ where
     }
 }
 
+/// parser to check if this is already the end of file
 pub fn eof<T: std::fmt::Debug>(input: &[T], offset: usize) -> ParseResult<()> {
     if offset >= input.len() {
         p_ok(offset, ())

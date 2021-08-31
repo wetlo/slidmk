@@ -11,6 +11,8 @@ mod tokens;
 use iterexts::SlideExt;
 pub use slide::*;
 
+/// takes a reference to some source and returns the lazily
+/// parsed slides
 pub fn parse(source: &'_ str) -> impl Iterator<Item = Slide> + '_ {
     lexer::Lexer {
         source,
