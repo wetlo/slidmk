@@ -200,22 +200,20 @@ where
 
     fn parse(&self, input: &[T], mut offset: usize) -> ParseResult<Self::Output> {
         let mut error = None;
-        let vec: Vec<_> =
-            // creates an infinite iterator with nothing
-            std::iter::repeat(std::marker::PhantomData)
-            // map it to every valid parse result
-            .map_while(|_: std::marker::PhantomData<()>| {
-                let result = self
-                    .parser
-                    .parse(input, offset)
-                    // save the error
-                    .map_err(|e| error = Some(e))
-                    .ok()?;
 
-                offset = result.0;
-                Some(result.1)
-            })
-            .collect();
+        // gets all valid parses
+        let vec: Vec<_> = std::iter::from_fn(|| {
+            let result = self
+                .parser
+                .parse(input, offset)
+                // save the error
+                .map_err(|e| error = Some(e))
+                .ok()?;
+
+            offset = result.0;
+            Some(result.1)
+        })
+        .collect();
 
         // couldn't parse anything => return Error
         if vec.is_empty() {
