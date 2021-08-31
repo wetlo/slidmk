@@ -103,21 +103,21 @@ where
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum VertOrientation {
     Top,
     Middle,
     Bottom,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum HorOrientation {
     Left,
     Middle,
     Right,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Orientation {
     pub vertical: VertOrientation,
     pub horizontal: HorOrientation,

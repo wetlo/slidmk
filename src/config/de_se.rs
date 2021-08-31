@@ -33,7 +33,6 @@ pub struct ContentTemplate {
 
 #[derive(Deserialize)]
 pub struct DecorationJson {
-    // TODO: change to upper left and lower right
     pub orig: Point<f64>,
     pub size: Point<f64>,
     pub color: usize,

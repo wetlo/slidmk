@@ -18,7 +18,6 @@ pub struct Decoration {
 #[derive(Debug)]
 pub struct ContentTemplate {
     pub area: Rectangle<f64>,
-    // TODO: add line spacing
     pub font_size: f32,
     pub orientation: Orientation,
 }

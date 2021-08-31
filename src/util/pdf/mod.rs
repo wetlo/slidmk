@@ -350,7 +350,6 @@ impl<'a> Page<'a> {
             i += 1; // increase the index
         }
 
-        // TODO: maybe use pos.y for the vertical distance written
         Ok(Pt(i as f64) * pos_args.line_height)
     }
 
@@ -406,7 +405,7 @@ fn is_line_end(
                     width: line_width,
                 })
             } else {
-                // TODO: add kering between last and whitespace
+                // TODO: add kerning between last and whitespace
                 // add the whitespace width if this word is still on the line
                 p_sum += whitespace_width;
                 None

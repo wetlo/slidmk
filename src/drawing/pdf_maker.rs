@@ -103,7 +103,9 @@ impl PdfMaker {
         let ident_width = page.doc.get_width("-", args.font_size, args.font)?;
         let orig = *args.area.origin();
 
-        // TODO: make lists work with different orientations
+        if args.orientation != &Default::default() {
+            eprintln!("warning list are currently only supported in top-left orientation");
+        }
         for (ident, text) in items {
             page.new_layer("please end my suffering");
             // the ident of the list item and drawing the symbol
@@ -128,29 +130,4 @@ impl PdfMaker {
 
         Ok(())
     }
-
-    /*fn image(
-        &self,
-        image_path: PathBuf,
-        DrawingArgs {
-            layer,
-            area: Rectangle { orig: pos, .. },
-            ..
-        }: DrawingArgs,
-    ) -> DResult<()> {
-        let image = image::io::Reader::open(image_path)?.decode()?;
-        let pdf_image = printpdf::Image::from_dynamic_image(&image);
-
-        // TODO: get the scaling right
-        pdf_image.add_to_layer(
-            layer,
-            Some(pos.0.into()),
-            Some(pos.1.into()),
-            None,
-            None,
-            None,
-            Some(DPI as f64),
-        );
-        Ok(())
-    }*/
 }
