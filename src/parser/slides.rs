@@ -36,63 +36,55 @@ token_fn!(right_bracket, (), Token::SqrBracketRight => ());
 token_fn!(left_bracket, (), Token::SqrBracketLeft => ());
 token_fn!(line_feed, (), Token::Linefeed => ());
 
-/// an iterator over the lazily parsed slides
-pub struct Slides<'s> {
-    tokens: Vec<Token<'s>>,
-    offset: usize,
+fn construct_slide_parser<'s>() -> impl Parser<Token<'s>, Output = Slide> {
+    let text = text
+        .many()
+        .process(|v| v.into_iter().intersperse(" ").collect());
+    let list = list_pre.and(text.clone()).many().process(Content::List);
+
+    // TODO: fix problem where you can't write ] in normal text
+    let image = text
+        .clone()
+        .prefix(left_bracket)
+        .suffix(right_bracket)
+        .and(path)
+        .process(|(desc, path)| Content::Image(desc, path.into()));
+
+    let content = path
+        .process(|p| Content::Config(p.into()))
+        .or(image)
+        .or(list)
+        .or(text.process(Content::Text))
+        .suffix(line_feed.or(combinators::eof));
+    //.inspect(|c| eprintln!("found Content: {:?}", c));
+
+    identifier
+        .suffix(line_feed)
+        .and(content.many())
+        .process(|(kind, content)| Slide {
+            kind: kind.into(),
+            contents: content,
+        })
 }
 
-impl<'s> Slides<'s> {
-    /// creates the slide parser iterator with the token contents
-    pub fn new(tokens: Vec<Token<'s>>) -> Self {
-        Self { tokens, offset: 0 }
-    }
-}
+pub fn lazy_parser(
+    tokens: Vec<Token<'_>>,
+) -> impl Iterator<Item = Result<Slide, ParseError<'static>>> + '_ {
+    let parser = construct_slide_parser();
+    let mut offset = 0;
 
-impl<'s> Iterator for Slides<'s> {
-    type Item = Result<Slide, ParseError<'static>>;
+    std::iter::from_fn(move || {
+        if offset < tokens.len() {
+            match parser.parse(&tokens, offset) {
+                Err(e) => Some(Err(e)),
 
-    /// parses the next slide if available
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.offset >= self.tokens.len() {
-            return None;
-        }
-
-        let text = text.many().process(|v| v.into_iter().collect::<String>());
-        let list = list_pre.and(text.clone()).many().process(Content::List);
-
-        // TODO: fix problem where you can't write ] in normal text
-        let image = text
-            .clone()
-            .prefix(left_bracket)
-            .suffix(right_bracket)
-            .and(path)
-            .process(|(desc, path)| Content::Image(desc, path.into()));
-
-        let content = path
-            .process(|p| Content::Config(p.into()))
-            .or(image)
-            .or(list)
-            .or(text.clone().process(Content::Text))
-            .suffix(line_feed.or(combinators::eof));
-        //.inspect(|c| eprintln!("found Content: {:?}", c));
-
-        let result = identifier
-            .suffix(line_feed)
-            .and(content.many())
-            .process(|(kind, content)| Slide {
-                kind: kind.into(),
-                contents: content,
-            })
-            .parse(&self.tokens, self.offset);
-
-        match result {
-            Err(e) => Some(Err(e)),
-
-            Ok((offset, slide)) => {
-                self.offset = offset;
-                Some(Ok(slide))
+                Ok((off, slide)) => {
+                    offset = off;
+                    Some(Ok(slide))
+                }
             }
+        } else {
+            None
         }
-    }
+    })
 }
