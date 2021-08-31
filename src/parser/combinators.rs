@@ -19,6 +19,13 @@ pub trait Parser<T>: Sized {
         }
     }
 
+    fn inspect<F: Fn(&Self::Output)>(self, inspector: F) -> Inspect<Self, F> {
+        Inspect {
+            parser: self,
+            inspector,
+        }
+    }
+
     fn and<P: Parser<T>>(self, other: P) -> And<Self, P> {
         And {
             first: self,
@@ -195,5 +202,36 @@ where
         } else {
             p_ok(offset, vec)
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct Inspect<P, F> {
+    parser: P,
+    inspector: F,
+}
+
+impl<P, F, T> Parser<T> for Inspect<P, F>
+where
+    P: Parser<T>,
+    F: Fn(&P::Output),
+{
+    type Output = P::Output;
+
+    fn parse(&self, input: &[T], offset: usize) -> ParseResult<Self::Output> {
+        let result = self.parser.parse(input, offset)?;
+        (self.inspector)(&result.1);
+        Ok(result)
+    }
+}
+
+pub fn eof<T: std::fmt::Debug>(input: &[T], offset: usize) -> ParseResult<()> {
+    if offset >= input.len() {
+        p_ok(offset, ())
+    } else {
+        Err(ParseError {
+            expected: "EOF",
+            actual: format!("{:?}", input[offset]),
+        })
     }
 }

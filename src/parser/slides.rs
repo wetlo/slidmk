@@ -68,27 +68,27 @@ impl<'s> Iterator for Slides<'s> {
 
         let content = path
             .process(|p| Content::Config(p.into()))
-            .or(text.clone().process(|s| Content::Text(s)))
-            .or(list)
             .or(image)
-            .suffix(line_feed);
+            .or(list)
+            .or(text.clone().process(|s| Content::Text(s)))
+            .suffix(line_feed.or(combinators::eof));
 
         let result = identifier
             .suffix(line_feed)
             .and(content.many())
+            .process(|(kind, content)| Slide {
+                kind: kind.into(),
+                contents: content,
+            })
             .parse(&self.tokens, self.offset);
 
         match result {
-            Ok((offset, (kind, content))) => {
-                self.offset = offset;
-
-                Some(Ok(Slide {
-                    kind: kind.into(),
-                    contents: content,
-                }))
-            }
-
             Err(e) => Some(Err(e)),
+
+            Ok((offset, slide)) => {
+                self.offset = offset;
+                Some(Ok(slide))
+            }
         }
     }
 }
