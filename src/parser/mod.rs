@@ -31,7 +31,7 @@ pub fn parse(source: &'_ str) -> impl Iterator<Item = Slide> + '_ {
             !(last && next)
         }
     })
-    //.inspect(|t| eprintln!("{:?}", t))
+    .inspect(|t| eprintln!("{:?}", t))
     .slides()
     .map(|s| match s {
         Ok(s) => s,
@@ -40,5 +40,5 @@ pub fn parse(source: &'_ str) -> impl Iterator<Item = Slide> + '_ {
             std::process::exit(1);
         }
     })
-    //.inspect(|s| println!("slide: {:?}", s))
+    .inspect(|s| println!("slide: {:?}", s))
 }

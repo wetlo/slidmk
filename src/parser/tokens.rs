@@ -32,7 +32,7 @@ lazy_static::lazy_static! {
         (regex(r"---\s*([^\s\d]+)"), &identifier),
         (regex(r"-|\*"), &list_item),
         (regex(r#""(.*)""#), &path),
-        (regex(r"(.*)\n?"), &text),
+        (regex(r"([^\]\n]*)\n?"), &text),
     ];
 }
 

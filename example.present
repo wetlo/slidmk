@@ -1,5 +1,5 @@
 --- Style
-"./path/to/style/sheet"
+"./example/style.hjson"
 
 --- Title
 ; comment
@@ -9,7 +9,8 @@ EXAMPLE PRESENTATION
 	by me
 
 --- Style
-"style_from_standard_path"
+; "style_from_standard_path"
+"./example/style.hjson"
 
 --- Head_Cont
 

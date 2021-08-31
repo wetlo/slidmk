@@ -10,7 +10,7 @@ use std::path::Path;
 
 macro_rules! token_fn {
     ($name:ident, $ret_ty:ty, $pat:pat => $ret:expr) => {
-        /// tries to get a token of the pattern $pat, if such a token is
+        /// tries to get the token, if the token is
         /// not found it creates a nice error
         fn $name<'s>(input: &[Token<'s>], offset: usize) -> combinators::ParseResult<$ret_ty> {
             match input.get(offset) {
@@ -61,6 +61,7 @@ impl<'s> Iterator for Slides<'s> {
         let text = text.many().process(|v| v.into_iter().collect::<String>());
         let list = list_pre.and(text.clone()).many().process(Content::List);
 
+        // TODO: fix problem where you can't write ] in normal text
         let image = text
             .clone()
             .prefix(left_bracket)
@@ -74,6 +75,7 @@ impl<'s> Iterator for Slides<'s> {
             .or(list)
             .or(text.clone().process(Content::Text))
             .suffix(line_feed.or(combinators::eof));
+        //.inspect(|c| eprintln!("found Content: {:?}", c));
 
         let result = identifier
             .suffix(line_feed)
