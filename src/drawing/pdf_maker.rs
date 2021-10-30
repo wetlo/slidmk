@@ -5,11 +5,8 @@ use crate::util::pdf;
 use std::io::Write;
 
 const DPI: u16 = 300;
+// TODO: maybe look for the screen size
 const SIZE: pdf::Size = pdf::Size::Px(1920, 1080);
-const DRAW_AREA: config::Rectangle<f64> = config::Rectangle {
-    orig: config::Point { x: 0.05, y: 0.05 },
-    size: config::Point { x: 0.9, y: 0.9 },
-};
 
 pub struct PdfMaker {
     doc: pdf::Document,
@@ -40,7 +37,7 @@ impl PdfMaker {
     /// creates a pdf maker with information from the
     /// config
     pub fn with_config(config: &Config) -> DResult<Self> {
-        let doc = pdf::Document::new(config.doc_name, SIZE, DRAW_AREA, DPI)?;
+        let doc = pdf::Document::new(config.doc_name, SIZE, config.style.margin.clone(), DPI)?;
         let drawer = Self { doc };
 
         Ok(drawer)
