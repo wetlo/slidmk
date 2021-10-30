@@ -13,3 +13,9 @@ presentation as much as I would like, so i took into my own hands.
 # Usage
 
 WIP
+
+# License
+
+All the code in this repository is licensed under the apache-2.0 license,
+however, distributed binaries, need to respect all the licenses of the used libraries,
+due to rust's static linking.
