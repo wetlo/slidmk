@@ -36,6 +36,7 @@ pub struct SlideTemplate {
 pub struct PresentStyle {
     pub colors: Vec<Color>,
     pub font: String,
+    pub margin: Rectangle<f64>,
     line_spacing: f64,
 }
 
@@ -47,6 +48,10 @@ impl Default for PresentStyle {
                 Color::new(1.0, 0.0, 0.0),
                 Color::new(0.0, 1.0, 1.0),
             ],
+            margin: Rectangle {
+                orig: Point { x: 0.05, y: 0.05 },
+                size: Point { x: 0.9, y: 0.9 },
+            },
             font: String::from("Noto Sans"),
             line_spacing: 1.0,
         }
@@ -75,44 +80,34 @@ impl ConfigBuilder {
             PresentStyle::from(json)
         });
 
-        let template_paths = self.templates
-            .ok_or("no templates given".to_string())?;
+        let template_paths = self.templates.ok_or("no templates given".to_string())?;
 
-        let mut temps = template_paths
-            .iter()
-            .map(|p| {
-                let r = get_reader(p).unwrap();
-                let json: de_se::TemplateJson = serde_hjson::from_reader(r).map_err(|e| {
-                    format!(
-                        "invalid template at: {} due to:\n{}",
-                        p.to_string_lossy(),
-                        e.to_string()
-                    )
-                })?;
-                Ok((
-                    json.margin,
-                    json.slides
-                        .into_iter()
-                        .map(|(k, t)| (k, SlideTemplate::from(t)))
-                        .collect::<Vec<_>>(),
-                ))
-            });
-
-        let first_temp = temps.next().unwrap()?;
-        let margin = first_temp.0;
+        let temps = template_paths.iter().map(|p| {
+            let r = get_reader(p).unwrap();
+            let json: de_se::TemplateJson = serde_hjson::from_reader(r).map_err(|e| {
+                format!(
+                    "invalid template at: {} due to:\n{}",
+                    p.to_string_lossy(),
+                    e
+                )
+            })?;
+            Ok::<_, String>(
+                json.into_iter()
+                    .map(|(k, t)| (k, SlideTemplate::from(t)))
+                    .collect::<Vec<_>>(),
+            )
+        });
 
         let mut temp_map = StyleMap::new();
         // TODO: change later so style takes the margin
-        let iter = std::iter::once(Ok::<_, String>(first_temp.1));
 
-        for s in temps.map(|t: Result<_, String>| Ok(t?.1)).chain(iter) {
+        for s in temps {
             temp_map.extend(s?);
         }
 
         Ok(Config {
             style,
             doc_name: "default",
-            margin,
             slide_templates: temp_map,
         })
     }
@@ -121,7 +116,6 @@ impl ConfigBuilder {
 #[derive(Debug)]
 pub struct Config<'a> {
     pub style: PresentStyle,
-    pub margin: Rectangle<f64>,
     pub slide_templates: StyleMap,
     pub doc_name: &'a str,
 }

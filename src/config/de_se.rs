@@ -6,15 +6,16 @@ use std::collections::HashMap;
 pub struct StyleJson {
     pub colors: Vec<String>,
     pub font: String,
+    pub margin: Rectangle<f64>,
     #[serde(rename = "lineSpace")]
     pub line_spacing: f64,
 }
 
-#[derive(Deserialize)]
+/*#[derive(Deserialize)]
 pub struct TemplateJson {
-    pub margin: Rectangle<f64>,
     pub slides: HashMap<String, SlideTemplate>,
-}
+}*/
+pub type TemplateJson = HashMap<String, SlideTemplate>;
 
 #[derive(Deserialize)]
 pub struct SlideTemplate {
@@ -43,6 +44,7 @@ impl From<StyleJson> for super::PresentStyle {
         Self {
             font: json.font,
             line_spacing: json.line_spacing,
+            margin: json.margin,
             colors: json
                 .colors
                 .iter()

@@ -4,10 +4,6 @@ impl<'a> Default for super::Config<'a> {
     fn default() -> Self {
         Self {
             style: Default::default(),
-            margin: Rectangle {
-                orig: Point { x: 0.05, y: 0.05 },
-                size: Point { x: 0.9, y: 0.9 },
-            },
             slide_templates: default_slide_templates(),
             doc_name: "presentation",
         }
