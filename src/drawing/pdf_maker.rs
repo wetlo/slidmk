@@ -19,7 +19,7 @@ impl Drawer for PdfMaker {
     fn create_slide(&mut self, slide: Slide, config: &Config) -> DResult<()> {
         // get info of how the slide should be drawn
         let kind = config
-            .slide_styles
+            .slide_templates
             .get(&slide.kind)
             .ok_or_else(|| DrawError::KindNotFound(slide.kind.clone()))?;
 

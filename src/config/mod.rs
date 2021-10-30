@@ -5,6 +5,7 @@ use std::{fs, io};
 pub type StyleMap = HashMap<String, SlideTemplate>;
 
 mod de_se;
+mod default;
 mod primitives;
 
 pub use primitives::*;
@@ -59,68 +60,61 @@ pub struct ConfigBuilder {
 }
 
 impl ConfigBuilder {
-    pub fn with_style(mut self, path: PathBuf) -> Self {
+    pub fn with_style(&mut self, path: PathBuf) {
         self.style = Some(path);
-        self
     }
 
-    pub fn with_templates(mut self, paths: Vec<PathBuf>) -> Self {
+    pub fn with_templates(&mut self, paths: Vec<PathBuf>) {
         self.templates = Some(paths);
-        self
     }
 
-    pub fn build(self) -> Config<'static> {
+    pub fn build(self) -> Result<Config<'static>, String> {
         let style = self.style.map_or_else(PresentStyle::default, |s| {
             let r = get_reader(s).unwrap();
             let json: de_se::StyleJson = serde_hjson::from_reader(r).unwrap();
             PresentStyle::from(json)
         });
 
-        let mut jsons = self.templates.map(|v| {
-            v.into_iter().map(|p| {
+        let template_paths = self.templates
+            .ok_or("no templates given".to_string())?;
+
+        let mut temps = template_paths
+            .iter()
+            .map(|p| {
                 let r = get_reader(p).unwrap();
-                let json: de_se::TemplateJson = serde_hjson::from_reader(r).unwrap();
-                (
+                let json: de_se::TemplateJson = serde_hjson::from_reader(r).map_err(|e| {
+                    format!(
+                        "invalid template at: {} due to:\n{}",
+                        p.to_string_lossy(),
+                        e.to_string()
+                    )
+                })?;
+                Ok((
                     json.margin,
                     json.slides
                         .into_iter()
                         .map(|(k, t)| (k, SlideTemplate::from(t)))
                         .collect::<Vec<_>>(),
-                )
-            })
-        });
+                ))
+            });
 
-        let first_slides;
-        let margin = if let Some(s) = jsons.as_mut().map(|j| j.next()).flatten() {
-            first_slides = Some(s.1);
-            s.0
-        } else {
-            first_slides = None;
-            Rectangle {
-                orig: Point { x: 0.05, y: 0.05 },
-                size: Point { x: 0.9, y: 0.9 },
-            }
-        };
+        let first_temp = temps.next().unwrap()?;
+        let margin = first_temp.0;
 
-        let slide_temps = if let Some(temps) = jsons {
-            let mut map = StyleMap::new();
-            let iter = std::iter::once(first_slides.unwrap());
+        let mut temp_map = StyleMap::new();
+        // TODO: change later so style takes the margin
+        let iter = std::iter::once(Ok::<_, String>(first_temp.1));
 
-            for s in temps.map(|t| t.1).chain(iter) {
-                map.extend(s);
-            }
+        for s in temps.map(|t: Result<_, String>| Ok(t?.1)).chain(iter) {
+            temp_map.extend(s?);
+        }
 
-            map
-        } else {
-            default_slide_templates()
-        };
-
-        Config {
+        Ok(Config {
             style,
             doc_name: "default",
             margin,
-            slide_styles: slide_temps,
-        }
+            slide_templates: temp_map,
+        })
     }
 }
 
@@ -128,7 +122,7 @@ impl ConfigBuilder {
 pub struct Config<'a> {
     pub style: PresentStyle,
     pub margin: Rectangle<f64>,
-    pub slide_styles: StyleMap,
+    pub slide_templates: StyleMap,
     pub doc_name: &'a str,
 }
 
@@ -156,114 +150,5 @@ impl<'a> Config<'a> {
             .get(idx)
             .ok_or(DrawError::NoColor(idx))
             .map(|c| *c)
-    }
-}
-
-fn default_slide_templates() -> StyleMap {
-    let header_orientation = Orientation {
-        vertical: VertOrientation::Bottom,
-        horizontal: HorOrientation::Middle,
-    };
-    crate::map! {
-        "Title" => SlideTemplate {
-            decorations: vec![],
-            content: vec![
-                ContentTemplate {
-                    area: Rectangle {
-                        orig: Point{x: 0.0,y: 0.0},
-                        size: Point{x: 1.0,y: 0.8} },
-                    font_size: 36.0,
-                    orientation: header_orientation.clone(),
-                },
-                ContentTemplate {
-                    area: Rectangle {
-                        orig: Point{x: 0.0,y: 0.8},
-                        size: Point{x: 1.0,y: 0.2} },
-                    font_size: 18.0,
-                    orientation: Orientation::default(),
-                },
-            ],
-        },
-
-        "Head_Cont" => SlideTemplate {
-            decorations: vec![],
-            content: vec![
-                ContentTemplate {
-                    area: Rectangle {
-                        orig: Point{x: 0.0,y: 0.0},
-                        size: Point{x: 1.0,y: 0.3},
-                    },
-                    font_size: 24.0,
-                    orientation: header_orientation.clone(),
-                },
-                ContentTemplate {
-                    area: Rectangle {
-                        orig: Point{x: 0.0,y: 0.3},
-                        size: Point{x: 1.0,y: 0.7},
-                    },
-                    font_size: 18.0,
-                    orientation: Orientation::default(),
-                },
-            ],
-        },
-
-        "Vert_Split" => SlideTemplate {
-            decorations: vec![],
-            content: vec![
-                ContentTemplate {
-                    area: Rectangle {
-                        orig: Point{x: 0.0,y: 0.0},
-                        size: Point{x: 0.5,y: 0.3},
-                    },
-                    font_size: 24.0,
-                    orientation: header_orientation.clone(),
-                },
-                ContentTemplate {
-                    area: Rectangle {
-                        orig: Point{x: 0.0,y: 0.3},
-                        size: Point{x: 0.5,y: 0.7},
-                    },
-                    font_size: 18.0,
-                    orientation: Orientation::default(),
-                },
-                ContentTemplate {
-                    area: Rectangle {
-                        orig: Point{x: 0.5,y: 0.0},
-                        size: Point{x: 0.5,y: 0.3},
-                    },
-                    font_size: 24.0,
-                    orientation: header_orientation,
-                },
-                ContentTemplate {
-                    area: Rectangle {
-                        orig: Point{x: 0.5,y: 0.3},
-                        size: Point{x: 0.5,y: 0.7},
-                    },
-                    font_size: 18.0,
-                    orientation: Orientation::default(),
-                },
-            ],
-        },
-        "Two_Hor" => SlideTemplate {
-            decorations: vec![],
-            content: vec![
-                ContentTemplate {
-                    area: Rectangle {
-                        orig: Point{x: 0.0,y: 0.0},
-                        size: Point{x: 1.0,y: 0.5},
-                    },
-                    font_size: 20.0,
-                    orientation: Orientation::default(),
-                },
-                ContentTemplate {
-                    area: Rectangle {
-                        orig: Point{x: 0.0,y: 0.5},
-                        size: Point{x: 1.0,y: 0.5},
-                    },
-                    font_size: 20.0,
-                    orientation: Orientation::default(),
-                },
-            ],
-        },
     }
 }

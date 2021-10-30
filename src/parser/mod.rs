@@ -20,6 +20,7 @@ pub fn parse(source: &'_ str) -> impl Iterator<Item = Slide> + '_ {
         whitespace: &tokens::WHITESPACE,
         invalid: Token::Illegal,
     }
+    // remove repeated linefeeds
     .filter({
         let mut next = false;
         let mut last = false;

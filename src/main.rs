@@ -1,5 +1,5 @@
-#![feature(iter_intersperse)]
 use std::fs::File;
+
 use structopt::StructOpt;
 
 use crate::{
@@ -26,6 +26,7 @@ fn main() -> Result<(), DrawError> {
     let style = args
         .style
         .unwrap_or_else(|| dir.config_dir().join("style.hjson"));
+
     let templates = if args.templates.is_empty() {
         vec![dir.config_dir().join("template.hjson")]
     } else {
@@ -35,14 +36,17 @@ fn main() -> Result<(), DrawError> {
     let mut config = Config::builder();
 
     if style.exists() {
-        config = config.with_style(style);
+        config.with_style(style);
     }
 
     if templates.iter().all(|p| p.exists()) {
-        config = config.with_templates(templates);
+        config.with_templates(templates);
     }
 
-    let mut config = config.build();
+    let mut config = config.build().unwrap_or_else(|e| {
+        eprintln!("using default config because of {}", e);
+        Config::default()
+    });
 
     let source = std::fs::read_to_string(args.present_file).unwrap();
     let slides = parser::parse(&source);
