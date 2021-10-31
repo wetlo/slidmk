@@ -1,8 +1,6 @@
 #![feature(result_flattening, try_blocks)]
 use std::fs::File;
 
-use structopt::StructOpt;
-
 use crate::{
     config::Config,
     drawing::{pdf_maker::PdfMaker, DrawError, Drawer},
@@ -15,36 +13,21 @@ mod drawing;
 mod parser;
 mod util;
 
-fn get_project_dir() -> directories::ProjectDirs {
-    directories::ProjectDirs::from("org", "wetlo", "slidmk")
-        .expect("Unknown operating system, couldn't find a good project directory")
-}
 
 fn main() -> Result<(), DrawError> {
-    let args = cli_args::Opts::from_args();
-    let dir = get_project_dir();
-
-    let style = args
-        .style
-        .unwrap_or_else(|| dir.config_dir().join("style.hjson"));
-
-    let templates = if args.templates.is_empty() {
-        vec![dir.config_dir().join("template.hjson")]
-    } else {
-        args.templates
-    };
+    let args = cli_args::get();
 
     let mut config = Config::builder();
 
-    if style.exists() {
-        config.with_style(style);
+    if args.style.exists() {
+        config.with_style(args.style);
     }
 
-    if templates.iter().all(|p| p.exists()) {
-        config.with_templates(templates);
+    if args.templates.iter().all(|p| p.exists()) {
+        config.with_templates(args.templates);
     }
 
-    let mut config = config.build("presentation");
+    let mut config = config.build(&args.doc_name);
     dbg!(&config);
 
     let source = std::fs::read_to_string(args.present_file).unwrap();
