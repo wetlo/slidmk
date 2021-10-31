@@ -68,12 +68,14 @@ pub struct ConfigBuilder {
 }
 
 impl ConfigBuilder {
-    pub fn with_style(&mut self, path: PathBuf) {
+    pub fn with_style(mut self, path: PathBuf) -> Self {
         self.style = Some(path);
+        self
     }
 
-    pub fn with_templates(&mut self, paths: Vec<PathBuf>) {
+    pub fn with_templates(mut self, paths: Vec<PathBuf>) -> Self {
         self.templates = Some(paths);
+        self
     }
 
     fn get_style(&self) -> PresentStyle {

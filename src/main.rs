@@ -13,22 +13,13 @@ mod drawing;
 mod parser;
 mod util;
 
-
 fn main() -> Result<(), DrawError> {
     let args = cli_args::get();
 
-    let mut config = Config::builder();
-
-    if args.style.exists() {
-        config.with_style(args.style);
-    }
-
-    if args.templates.iter().all(|p| p.exists()) {
-        config.with_templates(args.templates);
-    }
-
-    let mut config = config.build(&args.doc_name);
-    dbg!(&config);
+    let mut config = Config::builder()
+        .with_style(args.style)
+        .with_templates(args.templates)
+        .build(&args.doc_name);
 
     let source = std::fs::read_to_string(args.present_file).unwrap();
     let slides = parser::parse(&source);
