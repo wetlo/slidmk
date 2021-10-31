@@ -1,13 +1,13 @@
 {
 	colors: [
 		// foreground and background color
-		#000000
-		#FFFFFF
+		%000000
+		%FFFFFF
 
-		#FF00FF
-		#BBDD00
-		#3A7743
-		#216512
+		%FF00FF
+		%BBDD00
+		%3A7743
+		%216512
 	]
 	
 	margin: {
