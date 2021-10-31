@@ -84,10 +84,10 @@ impl ConfigBuilder {
             .as_ref()
             .ok_or("no style given".into())
             .map(|s| {
-                let r = get_reader(s).unwrap();
+                let r = get_reader(s).map_err(|_| Cow::Borrowed(""))?;
                 let json: de_se::StyleJson = serde_hjson::from_reader(r).map_err(|e| {
                     Cow::Owned(format!(
-                        "invalid style format: {}, due to\n{}",
+                        "invalid style format: {}, due to: {}\n",
                         s.to_string_lossy(),
                         e
                     ))
@@ -97,7 +97,7 @@ impl ConfigBuilder {
             .flatten();
 
         if let Err(e) = &style {
-            eprint!("{}\n\tusing default instead", e);
+            eprintln!("{}\tusing default style instead", e);
         }
 
         style.unwrap_or_default()
@@ -107,8 +107,9 @@ impl ConfigBuilder {
         paths: I,
     ) -> impl Iterator<Item = Result<impl Iterator<Item = (String, SlideTemplate)>, String>> + 'a
     {
-        paths.map(|p| {
-            let r = get_reader(p).unwrap();
+        paths
+        .filter_map(|p| Some((p, get_reader(p).ok()?)))
+        .map(|(p, r)| {
             let json: de_se::TemplateJson = serde_hjson::from_reader(r).map_err(|e| {
                 format!(
                     "invalid template at: {} due to:\n{}",
@@ -156,9 +157,15 @@ pub struct Config<'a> {
 }
 
 fn get_reader<P: AsRef<Path>>(path: P) -> io::Result<io::BufReader<fs::File>> {
-    let file = fs::File::open(path)?;
+    let file = fs::File::open(path.as_ref());
 
-    Ok(io::BufReader::new(file))
+    match file {
+        Ok(f) => Ok(io::BufReader::new(f)),
+        Err(e) => {
+            eprintln!("{}: {}", path.as_ref().to_string_lossy(), e);
+            Err(e)
+        }
+    }
 }
 
 impl<'a> Config<'a> {
