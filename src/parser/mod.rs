@@ -30,16 +30,15 @@ pub fn parse(source: &'_ str) -> impl Iterator<Item = Slide> + '_ {
             !(last && next)
         }
     })
-    .inspect(|t| eprintln!("{:?}", t))
+    //.inspect(|t| eprintln!("{:?}", t))
     .collect();
 
-    slides::lazy_parser(tokens)
-        .map(|s| match s {
-            Ok(s) => s,
-            Err(e) => {
-                eprintln!("{:?}", e);
-                std::process::exit(1);
-            }
-        })
-        .inspect(|s| println!("slide: {:?}", s))
+    slides::lazy_parser(tokens).map(|s| match s {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("{:?}", e);
+            std::process::exit(1);
+        }
+    })
+    //.inspect(|s| println!("slide: {:?}", s))
 }
