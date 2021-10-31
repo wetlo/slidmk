@@ -1,3 +1,4 @@
+#![feature(result_flattening, try_blocks)]
 use std::fs::File;
 
 use structopt::StructOpt;
@@ -43,10 +44,8 @@ fn main() -> Result<(), DrawError> {
         config.with_templates(templates);
     }
 
-    let mut config = config.build().unwrap_or_else(|e| {
-        eprintln!("using default config because of {}", e);
-        Config::default()
-    });
+    let mut config = config.build("presentation");
+    dbg!(&config);
 
     let source = std::fs::read_to_string(args.present_file).unwrap();
     let slides = parser::parse(&source);
@@ -64,7 +63,7 @@ fn main() -> Result<(), DrawError> {
                         _ => None,
                     })
                     .flatten()
-                    .expect("expected path to the style sheet");
+                    .expect("expected path to a style sheet");
 
                 config
                     .change_style(path)
@@ -72,7 +71,7 @@ fn main() -> Result<(), DrawError> {
             }
             _ => pdf
                 .create_slide(slide, &config)
-                .expect("Counldn't not create the slides do to"),
+                .expect("Could not create the slides due to"),
         }
     }
 

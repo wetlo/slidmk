@@ -10,7 +10,7 @@ impl<'a> Default for super::Config<'a> {
     }
 }
 
-pub fn default_slide_templates() -> StyleMap {
+pub fn default_slide_templates() -> TemplateMap {
     let header_orientation = Orientation {
         vertical: VertOrientation::Bottom,
         horizontal: HorOrientation::Middle,

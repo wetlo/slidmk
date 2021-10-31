@@ -1,14 +1,17 @@
 use crate::drawing::error::DrawError;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
-pub type StyleMap = HashMap<String, SlideTemplate>;
+pub type TemplateMap = HashMap<String, SlideTemplate>;
 
 mod de_se;
 mod default;
 mod primitives;
 
 pub use primitives::*;
+
+use self::default::default_slide_templates;
 
 #[derive(Debug)]
 pub struct Decoration {
@@ -73,16 +76,36 @@ impl ConfigBuilder {
         self.templates = Some(paths);
     }
 
-    pub fn build(self) -> Result<Config<'static>, String> {
-        let style = self.style.map_or_else(PresentStyle::default, |s| {
-            let r = get_reader(s).unwrap();
-            let json: de_se::StyleJson = serde_hjson::from_reader(r).unwrap();
-            PresentStyle::from(json)
-        });
+    fn get_style(&self) -> PresentStyle {
+        let style: Result<_, Cow<_>> = self
+            .style
+            .as_ref()
+            .ok_or("no style given".into())
+            .map(|s| {
+                let r = get_reader(s).unwrap();
+                let json: de_se::StyleJson = serde_hjson::from_reader(r).map_err(|e| {
+                    Cow::Owned(format!(
+                        "invalid style format: {}, due to\n{}",
+                        s.to_string_lossy(),
+                        e
+                    ))
+                })?;
+                Ok(PresentStyle::from(json))
+            })
+            .flatten();
 
-        let template_paths = self.templates.ok_or("no templates given".to_string())?;
+        if let Err(e) = &style {
+            eprint!("{}\n\tusing default instead", e);
+        }
 
-        let temps = template_paths.iter().map(|p| {
+        style.unwrap_or_default()
+    }
+
+    fn parse_templates<'a, I: Iterator<Item = &'a PathBuf> + 'a>(
+        paths: I,
+    ) -> impl Iterator<Item = Result<impl Iterator<Item = (String, SlideTemplate)>, String>> + 'a
+    {
+        paths.map(|p| {
             let r = get_reader(p).unwrap();
             let json: de_se::TemplateJson = serde_hjson::from_reader(r).map_err(|e| {
                 format!(
@@ -91,32 +114,42 @@ impl ConfigBuilder {
                     e
                 )
             })?;
-            Ok::<_, String>(
-                json.into_iter()
-                    .map(|(k, t)| (k, SlideTemplate::from(t)))
-                    .collect::<Vec<_>>(),
-            )
-        });
-
-        let mut temp_map = StyleMap::new();
-        // TODO: change later so style takes the margin
-
-        for s in temps {
-            temp_map.extend(s?);
-        }
-
-        Ok(Config {
-            style,
-            doc_name: "default",
-            slide_templates: temp_map,
+            Ok(json.into_iter().map(|(k, t)| (k, SlideTemplate::from(t))))
         })
+    }
+
+    fn get_templates(&self) -> TemplateMap {
+        let map: Result<_, Cow<str>> = try {
+            let paths = self
+                .templates
+                .as_ref()
+                .ok_or(Cow::Borrowed("no templates given"))?;
+
+            Self::parse_templates(paths.iter()).try_fold(TemplateMap::new(), |mut map, t| {
+                map.extend(t?);
+                Ok::<_, String>(map)
+            })?
+        };
+
+        map.unwrap_or_else(|e| -> HashMap<String, SlideTemplate> {
+            eprintln!("{}\n\tusing default template", e);
+            default_slide_templates()
+        })
+    }
+
+    pub fn build(self, doc_name: &'_ str) -> Config<'_> {
+        Config {
+            style: self.get_style(),
+            slide_templates: self.get_templates(),
+            doc_name,
+        }
     }
 }
 
 #[derive(Debug)]
 pub struct Config<'a> {
     pub style: PresentStyle,
-    pub slide_templates: StyleMap,
+    pub slide_templates: TemplateMap,
     pub doc_name: &'a str,
 }
 
