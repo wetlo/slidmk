@@ -97,7 +97,8 @@ impl PdfMaker {
         mut args: pdf::TextArgs,
     ) -> DResult<()> {
         use printpdf::Pt;
-        let ident_width = page.doc.get_width("-", args.font_size, args.font)?;
+        //let ident_width = page.doc.get_width("-", args.font_size, args.font)?;
+        let ident_width = Pt(args.font_size * 1.5);
         let orig = *args.area.origin();
 
         if args.orientation != &Default::default() {
