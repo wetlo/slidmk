@@ -2,7 +2,7 @@ use super::{Point, Rectangle};
 use serde_derive::Deserialize;
 use std::collections::HashMap;
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct StyleJson {
     pub colors: Vec<String>,
     pub font: String,
@@ -11,19 +11,19 @@ pub struct StyleJson {
     pub line_spacing: f64,
 }
 
-/*#[derive(Deserialize)]
+/*#[derive(Debug, Deserialize)]
 pub struct TemplateJson {
     pub slides: HashMap<String, SlideTemplate>,
 }*/
 pub type TemplateJson = HashMap<String, SlideTemplate>;
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct SlideTemplate {
     pub decoration: Vec<DecorationJson>,
     pub template: Vec<ContentTemplate>,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct ContentTemplate {
     pub orig: Point<f64>,
     pub size: Point<f64>,
@@ -32,7 +32,7 @@ pub struct ContentTemplate {
     pub font_size: f32,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct DecorationJson {
     pub orig: Point<f64>,
     pub size: Point<f64>,

@@ -108,17 +108,18 @@ impl ConfigBuilder {
     ) -> impl Iterator<Item = Result<impl Iterator<Item = (String, SlideTemplate)>, String>> + 'a
     {
         paths
-        .filter_map(|p| Some((p, get_reader(p).ok()?)))
-        .map(|(p, r)| {
-            let json: de_se::TemplateJson = serde_hjson::from_reader(r).map_err(|e| {
-                format!(
-                    "invalid template at: {} due to:\n{}",
-                    p.to_string_lossy(),
-                    e
-                )
-            })?;
-            Ok(json.into_iter().map(|(k, t)| (k, SlideTemplate::from(t))))
-        })
+            .filter_map(|p| Some((p, get_reader(p).ok()?))) // only valid files are processed
+            .map(|(p, r)| {
+                let json: de_se::TemplateJson = serde_hjson::from_reader(r).map_err(|e| {
+                    format!(
+                        "invalid template at: {} due to:\n{}",
+                        p.to_string_lossy(),
+                        e
+                    )
+                })?;
+
+                Ok(json.into_iter().map(|(k, t)| (k, SlideTemplate::from(t))))
+            })
     }
 
     fn get_templates(&self) -> TemplateMap {
@@ -134,7 +135,16 @@ impl ConfigBuilder {
             })?
         };
 
-        map.unwrap_or_else(|e| -> HashMap<String, SlideTemplate> {
+        map.map(|m| {
+            // if nothing is read it's a error too
+            if m.is_empty() {
+                Err(Cow::Borrowed(""))
+            } else {
+                Ok(m)
+            }
+        })
+        .flatten()
+        .unwrap_or_else(|e| {
             eprintln!("{}\n\tusing default template", e);
             default_slide_templates()
         })
