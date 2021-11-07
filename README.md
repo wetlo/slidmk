@@ -13,6 +13,7 @@ presentation as much as I would like to, so I took it into my own hands.
 # Installation
 
 1. install [rust](https://www.rust-lang.org/tools/install)
+1. install the nightly version of rust with `rustup default nightly`
 1. clone this repository
 1. run `cargo install --path=.` inside the repository folder
 1. make sure .cargo/bin is inside your PATH

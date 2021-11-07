@@ -134,12 +134,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b"
 
 [[package]]
-name = "const-cstr"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed3d0b5ff30645a68f35ece8cea4556ca14ef8a1651455f789a099a0513532a6"
-
-[[package]]
 name = "const_fn"
 version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -270,15 +264,6 @@ dependencies = [
  "crc32fast",
  "libc",
  "miniz_oxide 0.4.4",
-]
-
-[[package]]
-name = "fontconfig"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7c412ab3e93987232d0dd55c04327817bffa49fb79d43b57dc9f9e35c259dcc"
-dependencies = [
- "yeslogic-fontconfig-sys",
 ]
 
 [[package]]
@@ -530,12 +515,6 @@ checksum = "9f923fb806c46266c02ab4a5b239735c144bdeda724a50ed058e5226f594cde3"
 dependencies = [
  "ttf-parser 0.6.2",
 ]
-
-[[package]]
-name = "pkg-config"
-version = "0.3.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3831453b3449ceb48b6d9c7ad7c96d5ea673e9b470a1dc578c2ce6521230884c"
 
 [[package]]
 name = "png"
@@ -800,7 +779,6 @@ version = "0.1.0"
 dependencies = [
  "arrayvec 0.7.1",
  "directories",
- "fontconfig",
  "fontdb",
  "lazy_static",
  "printpdf",
@@ -1133,13 +1111,3 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
-
-[[package]]
-name = "yeslogic-fontconfig-sys"
-version = "2.11.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38e47154248a2dba5ca6965e26b1a59146210736ea9b862362b6d72682e57f8d"
-dependencies = [
- "const-cstr",
- "pkg-config",
-]
