@@ -1,12 +1,30 @@
 // TODO: make a program that generates this file
 {
+    # name of the template is called with --- <name> inside the .present file
 	Title: {
-		decoration : []
+        # colorful rectangles to draw on this type of slide
+		decoration : [
+            {
+                # same sizing style as content
+				orig: {x: 0.0, y: 0.8}
+				size: {x: 1.0, y: 0.2}
+                # the color index (see style.hjson) to fill this rectangle
+                color: 2
+            }
+        ]
+        # the different contents
 		template: [
 			{
+                # for the sizing look at the style.hjson
 				orig: {x: 0.0, y: 0.0}
 				size: {x: 1.0, y: 0.8}
+
+                # the orientation to draw the content
+                # can be top middle bottom
+                # and left middle right
 				orientation: bottom middle
+
+                # the fontsize of the text inside
 				fontSize: 36.0
 			}
 
@@ -14,7 +32,7 @@
 				orig: {x: 0.0, y: 0.8}
 				size: {x: 1.0, y: 0.2}
 				orientation: top left
-				fontSize: 36.0
+				fontSize: 20.0
 			}
 		]
 	}
@@ -22,8 +40,8 @@
 	"Head_Cont": {
 		decoration: [{
 			orig: {x: 0.0, y: 0.0}
-			size: {x: 1.0, y: 1.0}
-			color: 2
+			size: {x: 1.0, y: 0.3}
+		    color: 2
 		}]
 
 		template: [
@@ -43,30 +61,73 @@
 		]
 	}
 
-	"Vert_Split": {
-		decoration : []
+    "Head_TwoCont": {
+		decoration: [{
+			orig: {x: 0.0, y: 0.0}
+			size: {x: 1.0, y: 0.3}
+		    color: 2
+		}]
+
 		template: [
 			{
 				orig: {x: 0.0, y: 0.0}
-				size: {x: 0.5, y: 0.3}
-				fontSize: 24.0
-				orientation: bottom middle
-			}
-			{
-				orig: {x: 0.0, y: 0.3}
-				size: {x: 0.5, y: 0.7}
-				fontSize: 18.0
-				orientation: top left
-			}
-			{
-				orig: {x: 0.5, y: 0.0}
 				size: {x: 1.0, y: 0.3}
 				fontSize: 24.0
 				orientation: bottom middle
 			}
+
 			{
-				orig: {x: 0.5, y: 0.3}
-				size: {x: 1.0, y: 0.7}
+				orig: {x: 0.0, y: 0.3}
+				size: {x: 0.475, y: 0.7}
+				fontSize: 18.0
+				orientation: top left
+			}
+
+			{
+				orig: {x: 0.525, y: 0.3}
+				size: {x: 0.475, y: 0.7}
+				fontSize: 18.0
+				orientation: top left
+			}
+		]
+    }
+
+	"Vert_Split": {
+		decoration : [
+            {
+				orig: {x: 0.05, y: 0.0}
+				size: {x: 0.45, y: 0.3}
+                color: 2
+            }
+
+            {
+				orig: {x: 0.55, y: 0.0}
+				size: {x: 0.45, y: 0.3}
+                color: 2
+            }
+        ]
+		template: [
+			{
+				orig: {x: 0.05, y: 0.0}
+				size: {x: 0.45, y: 0.3}
+				fontSize: 24.0
+				orientation: bottom middle
+			}
+			{
+				orig: {x: 0.05, y: 0.3}
+				size: {x: 0.45, y: 0.7}
+				fontSize: 18.0
+				orientation: top left
+			}
+			{
+				orig: {x: 0.55, y: 0.0}
+				size: {x: 0.45, y: 0.3}
+				fontSize: 24.0
+				orientation: bottom middle
+			}
+			{
+				orig: {x: 0.55, y: 0.3}
+				size: {x: 0.45, y: 0.7}
 				fontSize: 18.0
 				orientation: top left
 			}

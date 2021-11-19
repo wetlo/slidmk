@@ -1,21 +1,30 @@
 {
+    # set the colorscheme of the presentation
+    # use % for colors because # is a comment
 	colors: [
-		// foreground and background color
-		%000000
+        # background color
 		%FFFFFF
+        # foreground color
+		%000000
 
 		%FF00FF
 		%BBDD00
 		%3A7743
 		%216512
 	]
-	
+
+    # the drawing area of the pdf
+    # all given in factors
+    # here the area begins at 5% from the top-left in both directions
+    # and ends after 85% of the document so it ends at 90% of both directions
 	margin: {
 		orig: {x: 0.05, y: 0.05}
 		size: {x: 0.85, y: 0.85}
 	}
 
+    # the font to draw everything in
 	font: Noto Sans
+
+    # and the spacing factor between to lines
 	lineSpace: 1.0
 }
-
