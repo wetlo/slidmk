@@ -21,3 +21,25 @@ Why
 	- more complicated than it needs to be
 * markdown converters/latex doesn't give enough control
 	and looks hideous
+
+--- Head_Cont
+
+Little Picture
+
+; use [description] "./path/to/image" to put an image into a content slot
+; currently the description is not rendered
+[a tree dran by me] "../assets/tree.jpg"
+
+; there are more templates and you can even add more
+--- Vert_Split
+
+Pros
+
+* This format is simple and markdown inspired
+
+Negs
+
+* yet another standard
+* early in development
+* unrefined
+* only outputs pdfs
