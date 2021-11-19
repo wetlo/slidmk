@@ -68,6 +68,7 @@ pub struct TextArgs<'a> {
     pub font_size: f64,
     pub font: &'a str,
     pub orientation: &'a config::Orientation,
+    pub foreground: Option<config::Color>,
 }
 
 /// the pdf document itself
@@ -139,7 +140,7 @@ impl Document {
         };
 
         #[cfg(debug_assertions)]
-        page.draw_rect(&page.doc.drawing_area, None, Some(Page::DBG_COLOR));
+        page.draw_rect(&page.doc.drawing_area, Some(Page::DBG_COLOR), None);
 
         page
     }
@@ -153,14 +154,14 @@ impl Document {
         tmp
     }
 
-    pub fn get_width(&mut self, text: &str, font_size: f64, font_name: &str) -> Result<Pt> {
+    /*pub fn get_width(&mut self, text: &str, font_size: f64, font_name: &str) -> Result<Pt> {
         self.maybe_load_font(font_name)?;
         let (_, font) = self.fonts(font_name);
 
         Ok(Pt(
             font.text_width(font_size as f32, text.chars()).sum::<f32>() as f64,
         ))
-    }
+    }*/
 
     pub fn set_lower_left(&self, rect: &mut PdfRect, to: config::Point<Pt>) -> bool {
         if self.drawing_area.0.is_inside_inclusive(to) {
@@ -252,12 +253,11 @@ impl<'a> Page<'a> {
         self.layer = self.page.add_layer(name);
     }
 
-    const DBG_COLOR: printpdf::Color = printpdf::Color::Rgb(printpdf::Rgb {
+    const DBG_COLOR: config::Color = config::Color {
         r: 1.0,
         g: 0.0,
         b: 1.0,
-        icc_profile: None,
-    });
+    };
 
     pub fn draw_image<P: AsRef<std::path::Path>>(&self, path: P, area: &PdfRect) -> Result<()> {
         let pos = area.0.orig.map(|pt| Some(Mm::from(pt)));
@@ -286,8 +286,8 @@ impl<'a> Page<'a> {
     pub fn draw_rect(
         &self,
         rect: &PdfRect,
-        fill_color: Option<printpdf::Color>,
-        stroke_color: Option<printpdf::Color>,
+        stroke_color: Option<config::Color>,
+        fill_color: Option<config::Color>,
     ) {
         let layer = &self.layer;
         let line = printpdf::Line {
@@ -298,14 +298,7 @@ impl<'a> Page<'a> {
             is_clipping_path: false,
         };
 
-        // set the color
-        if let Some(c) = fill_color {
-            layer.set_fill_color(c);
-        }
-        if let Some(c) = stroke_color {
-            layer.set_outline_color(c);
-        }
-
+        self.set_color(stroke_color, fill_color);
         // and draw it
         layer.add_shape(line)
     }
@@ -315,7 +308,10 @@ impl<'a> Page<'a> {
     pub fn draw_text(&mut self, args: &TextArgs<'_>, text: &str) -> Result<Pt> {
         // draw the box outlines in debug mode
         #[cfg(debug_assertions)]
-        self.draw_rect(&args.area, None, Some(Self::DBG_COLOR));
+        self.draw_rect(&args.area, Some(Self::DBG_COLOR), None);
+
+        // set the colors
+        self.set_color(None, args.foreground);
 
         // get the fonts
         self.doc.maybe_load_font(args.font)?;
@@ -353,6 +349,17 @@ impl<'a> Page<'a> {
         Ok(Pt(i as f64) * pos_args.line_height)
     }
 
+    fn set_color(&self, stroke_color: Option<config::Color>, fill_color: Option<config::Color>) {
+        let layer = &self.layer;
+
+        if let Some(c) = fill_color {
+            layer.set_fill_color(c.into());
+        }
+        if let Some(c) = stroke_color {
+            layer.set_outline_color(c.into());
+        }
+    }
+
     /// splits the text into lines which are
     /// inside the horizontal boundaries
     fn get_lines<'b>(
@@ -364,7 +371,7 @@ impl<'a> Page<'a> {
     ) -> impl Iterator<Item = LineData> + 'b {
         //eprintln!("max width of the line: {}", width);
 
-        // TODO: maybe support other chars
+        // TODO: maybe support whitespace chars
         text.split_ascii_whitespace()
             .map(move |word| {
                 Some((

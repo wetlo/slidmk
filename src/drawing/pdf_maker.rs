@@ -23,8 +23,16 @@ impl Drawer for PdfMaker {
         // create the new pdf page for the slide
         let mut page = self.doc.new_page("");
 
+        let foreground = config.get_color(1)?;
+
         Self::draw_decorations(&mut page, &kind.decorations, config)?;
-        Self::draw_content(&mut page, &kind.content, slide, &config.style.font)
+        Self::draw_content(
+            &mut page,
+            &kind.content,
+            slide,
+            &config.style.font,
+            foreground,
+        )
     }
 
     /// writes the document to the file system
@@ -53,7 +61,7 @@ impl PdfMaker {
             let area = page.doc.scale_pdf_rect(d.area.clone());
             let color = config.get_color(d.color_idx)?;
 
-            page.draw_rect(&area, Some(color.into()), None)
+            page.draw_rect(&area, None, Some(color))
         }
 
         Ok(())
@@ -65,6 +73,7 @@ impl PdfMaker {
         contents: &[ContentTemplate],
         slide: Slide,
         font: &str,
+        foreground: config::Color,
     ) -> DResult<()> {
         for (template, content) in contents.iter().zip(slide.contents.into_iter()) {
             let area = page.doc.scale_pdf_rect(template.area.clone());
@@ -73,6 +82,8 @@ impl PdfMaker {
                 font_size: template.font_size as f64,
                 font,
                 orientation: &template.orientation,
+                // TODO: add the colors
+                foreground: Some(foreground),
             };
 
             match content {
