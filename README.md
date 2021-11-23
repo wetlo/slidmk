@@ -20,19 +20,19 @@ presentation as much as I would like to, so I took it into my own hands.
 
 # Usage
 
-Create an presentation file, a little introduction to the format can be at `example/introduction.present`
-then run `slidmk <present_file>` to convert it to a pdf. The pdf can be found at `./out.pdf`.
+Create a presentation file (a little introduction to the format can be found at `example/introduction.present`),
+then run `slidmk <present_file>` to convert it to a _.pdf_. The .pdf file can be found at `./out.pdf`.
 
-If you want to change the name or directory of the output file use the -o or --output argument like
+If you want to change the name or directory of the output file, use the -o or --output argument like this:
 `slidmk example.present -o /this/is/the/output.pdf`.
 
-To use another style config use the -s or --style argument like
+To use another style config, use the -s or --style argument like this:
 `slidmk -s /path/to/style.hjson example.present`
 
-To add more templates use the -t or --templates flag to add multiple files like
+To add more templates, use the -t or --templates flag to add multiple files like this:
 `slidmk -t template.hjson /path/to/another.hjson ./and/another/one.hjson -- example.present`
 
-For more information about the templates and styles also look inside the `example` directory for examples
+For more information about the templates and styles do look inside the `example` directory for examples.
 
 # License
 
